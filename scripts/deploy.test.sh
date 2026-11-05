@@ -20,7 +20,11 @@ case "$1" in
     mkdir -p .vercel
     printf '%s\n' "$PULLED_ENV_CONTENT" > .vercel/.env.production.local
     ;;
-  build) exit "${VERCEL_BUILD_EXIT:-0}" ;;
+  build)
+    # Record the env file exactly as the build sees it.
+    cp .vercel/.env.production.local "$CALLS.buildenv"
+    exit "${VERCEL_BUILD_EXIT:-0}"
+    ;;
 esac
 EOF
   cat > "$1/bunx" <<'EOF'
@@ -91,6 +95,35 @@ report migrate_fails $?
 run_deploy PULLED_ENV_CONTENT=OTHER=1
 [ "$RC" -ne 0 ] && grep -qF DATABASE_URL <<< "$OUT" && ! called "bunx" && ! called "vercel deploy"
 report no_db_url $?
+
+# Vercel "Sensitive" variables can't be pulled; `vercel pull` writes this instead.
+sensitive='"[SENSITIVE]"'
+
+run_deploy PULLED_ENV_CONTENT="DATABASE_URL=$sensitive"
+[ "$RC" -ne 0 ] && grep -qF DIRECT_DATABASE_URL <<< "$OUT" && grep -qiF sensitive <<< "$OUT" \
+  && ! called "bunx" && ! called "vercel deploy"
+report sensitive_db_url_explains_fix $?
+
+run_deploy DIRECT_DATABASE_URL='mysql://u:hunter2@db/x'
+[ "$RC" -ne 0 ] && grep -qF postgres <<< "$OUT" && ! grep -qF hunter2 <<< "$OUT" \
+  && ! called "bunx" && ! called "vercel deploy"
+report non_postgres_url_rejected_without_printing_it $?
+
+run_deploy PULLED_ENV_CONTENT="DATABASE_URL=\"$pulled_url\"
+BETTER_AUTH_SECRET=$sensitive
+BETTER_AUTH_URL=$sensitive
+OTHER=$sensitive"
+buildenv="$(cat "$CALLS.buildenv" 2>/dev/null)"
+[ "$RC" -eq 0 ] \
+  && grep -qx 'BETTER_AUTH_SECRET="build-time-placeholder-not-a-real-secret"' <<< "$buildenv" \
+  && grep -qx 'BETTER_AUTH_URL="http://localhost:3000"' <<< "$buildenv" \
+  && grep -qxF "OTHER=$sensitive" <<< "$buildenv"
+report sensitive_auth_vars_get_build_placeholders $?
+
+run_deploy PULLED_ENV_CONTENT="DATABASE_URL=\"$pulled_url\"
+BETTER_AUTH_URL=\"https://inkwell.example\""
+grep -qx 'BETTER_AUTH_URL="https://inkwell.example"' "$CALLS.buildenv"
+report real_auth_values_untouched $?
 
 run_deploy VERCEL_TOKEN=tok_secret_123
 [ "$RC" -eq 0 ] && ! grep -qF tok_secret_123 <<< "$OUT"

@@ -15,6 +15,11 @@
 
 # ---- base: Node (Next, Prisma CLI, npx) + Bun (package manager, scripts) ----
 FROM node:24-bookworm-slim AS base
+# Prisma's CLI (generate, migrate deploy) detects the system OpenSSL; the slim
+# image has none, which makes Prisma warn and guess a version.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends openssl \
+ && rm -rf /var/lib/apt/lists/*
 COPY --from=oven/bun:1.3.13 /usr/local/bin/bun /usr/local/bin/bun
 RUN ln -s /usr/local/bin/bun /usr/local/bin/bunx
 WORKDIR /app
