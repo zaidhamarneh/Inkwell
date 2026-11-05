@@ -14,11 +14,22 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Enter your password"),
 });
 
-export const registerSchema = z.object({
-  name: z.string().trim().min(1, "Enter your name"),
-  email: z.email("Enter a valid email"),
-  password,
-});
+export const registerSchema = z
+  .object({
+    name: z.string().trim().min(1, "Enter your name"),
+    email: z.email("Enter a valid email"),
+    password,
+    confirmPassword: z.string().min(1, "Confirm your password"),
+  })
+  .superRefine(({ password, confirmPassword }, ctx) => {
+    if (confirmPassword && password !== confirmPassword) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Passwords do not match",
+        path: ["confirmPassword"],
+      });
+    }
+  });
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
