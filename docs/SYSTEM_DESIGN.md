@@ -272,6 +272,7 @@ flowchart LR
 ```
 
 - **One multi-stage Dockerfile** drives every CI step (`lint`, `test`, `integration`, `runner`, `deployer`), so CI runs exactly what developers can run locally.
+- **Serverless in production**: on Vercel, every backend entry point (REST route handlers, tRPC, Better Auth's handler, server actions and server-rendered pages) runs as a serverless Vercel Function, so the backend scales with traffic and there is no server to operate. The shared Prisma client (section 9, Singleton) keeps it to one connection pool per function instance.
 - **`runner`** is a minimal, self-hostable image built from Next's `standalone` output: no Bun, no dev dependencies, runs as a non-root user, with a health check.
 - **Deploy order is migrate-then-deploy**: the production database is only touched after the build succeeds, and nothing is deployed unless every migration succeeds. A failure leaves the current deployment serving.
 - **Secrets are never baked into images**; they are passed at runtime (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`).

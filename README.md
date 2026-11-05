@@ -4,7 +4,7 @@ A blogging platform: write posts, read a feed, comment and like.
 
 Built with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, tRPC, React Query, Better Auth, Prisma and PostgreSQL, with Bun as the package manager.
 
-Live demo: LIVE_URL_PLACEHOLDER
+Live demo: https://inkwelll-six.vercel.app/
 
 **Architecture:** see [docs/SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md) for the system design (components, data flow, data model, design patterns and design decisions).
 
@@ -178,6 +178,8 @@ docker network rm inkwell
 ## Deployment
 
 `.github/workflows/pipeline.yml` lints, tests and builds every pull request and push to `main`. On `main` it also pushes the runner image to GitHub Container Registry and deploys to Vercel production: it builds first, then runs `prisma migrate deploy`, and only deploys if every migration succeeded (`scripts/deploy.sh`).
+
+**Serverless backend.** On Vercel there is no long-running server: every backend entry point (the REST route handlers under `/api/v1`, the tRPC endpoint, Better Auth's `/api/auth` handler, the server actions and server-rendered pages) runs as a serverless Vercel Function that scales with traffic. The same code also runs as one ordinary Node.js server in the Docker `runner` image.
 
 It needs these secrets in the GitHub `production` environment: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` and `DIRECT_DATABASE_URL` (a direct, non-pooled connection string for migrations). Set `DATABASE_URL`, `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` (your production URL) in the Vercel project's environment variables.
 
