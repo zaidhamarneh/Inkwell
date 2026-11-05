@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import { requireSession } from "@/shared/auth/session";
+import { Navbar } from "@/shared/navbar/navbar";
 
 // Every page in (protected) renders only after the session is verified
 // against the database. src/proxy.ts redirects most signed-out requests
@@ -12,12 +13,20 @@ export default function ProtectedLayout({
 }) {
   return (
     <Suspense fallback={null}>
-      <RequireSession>{children}</RequireSession>
+      <ProtectedShell>{children}</ProtectedShell>
     </Suspense>
   );
 }
 
-async function RequireSession({ children }: { children: React.ReactNode }) {
-  await requireSession();
-  return children;
+async function ProtectedShell({ children }: { children: React.ReactNode }) {
+  const { user } = await requireSession();
+
+  return (
+    <>
+      <Navbar
+        user={{ name: user.name, email: user.email, image: user.image ?? null }}
+      />
+      <div className="flex flex-1 flex-col">{children}</div>
+    </>
+  );
 }
