@@ -11,7 +11,7 @@ Install dependencies:
 bun install
 ```
 
-Set up the database: copy `.env.example` to `.env`, set `DATABASE_URL` to your PostgreSQL connection string, then apply migrations:
+Set up the database: copy `.env.example` to `.env`, set `DATABASE_URL` to your PostgreSQL connection string and `BETTER_AUTH_SECRET` to a random value (`openssl rand -base64 32`), then apply migrations:
 
 ```bash
 bun run db:migrate
