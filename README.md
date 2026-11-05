@@ -11,6 +11,12 @@ Install dependencies:
 bun install
 ```
 
+Set up the database: copy `.env.example` to `.env`, set `DATABASE_URL` to your PostgreSQL connection string, then apply migrations:
+
+```bash
+bun run db:migrate
+```
+
 Run the development server:
 
 ```bash
@@ -25,3 +31,6 @@ Open [http://localhost:3000](http://localhost:3000) in your browser. Edit `src/a
 - `bun run build` — production build
 - `bun start` — serve the production build
 - `bun run lint` — run ESLint
+- `bun run db:migrate` — create and apply a Prisma migration
+- `bun run db:generate` — regenerate the Prisma client (also runs on `bun install`)
+- `bun run db:studio` — browse the database in Prisma Studio
