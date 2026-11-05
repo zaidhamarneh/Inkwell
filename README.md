@@ -1,29 +1,92 @@
 # Inkwell
-blog posting website
 
-Built with Next.js (App Router), React, TypeScript, Tailwind CSS and Bun.
+A blogging platform: write posts, read a feed, comment and like.
 
-## Getting Started
+Built with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, tRPC, React Query, Better Auth, Prisma and PostgreSQL, with Bun as the package manager.
 
-Install dependencies:
+**Architecture:** see [docs/SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md) for the system design (components, data flow, data model and design decisions).
+
+## Prerequisites
+
+| Tool | Version | Used for |
+| --- | --- | --- |
+| [Node.js](https://nodejs.org) | 24.x | Runs Next.js and the Prisma CLI |
+| [Bun](https://bun.sh) | 1.3.13 or newer | Installs packages and runs the scripts |
+| [Docker](https://www.docker.com) | any recent version | Runs PostgreSQL locally and builds the app image |
+
+You can use your own PostgreSQL server (version 15 or newer) instead of Docker for the database.
+
+## Running locally
+
+### 1. Install dependencies
 
 ```bash
-bun install
+bun i
 ```
 
-Set up the database: copy `.env.example` to `.env`, set `DATABASE_URL` to your PostgreSQL connection string and `BETTER_AUTH_SECRET` to a random value (`openssl rand -base64 32`), then apply migrations:
+This also generates the Prisma client (`postinstall` runs `prisma generate`).
+
+### 2. Start PostgreSQL
+
+Create a Docker network (so the app container in step 8 can reach the database by name), then start Postgres on it. The data is kept in the `inkwell-pgdata` volume:
+
+```bash
+docker network create inkwell
+```
+
+```bash
+docker run -d --name inkwell-db --network inkwell -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=inkwell -p 5432:5432 -v inkwell-pgdata:/var/lib/postgresql/data postgres:17-alpine
+```
+
+Later, stop and start it with `docker stop inkwell-db` / `docker start inkwell-db`. If port 5432 is already taken on your machine, use `-p 5433:5432` and put `5433` in `DATABASE_URL` below.
+
+### 3. Create the `.env` file
+
+Copy the example file:
+
+```bash
+cp .env.example .env
+```
+
+(PowerShell: `Copy-Item .env.example .env`.)
+
+Generate a secret for Better Auth:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+Then fill in `.env`:
+
+```dotenv
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/inkwell?schema=public"
+BETTER_AUTH_SECRET="<paste the generated value here>"
+BETTER_AUTH_URL="http://localhost:3000"
+```
+
+| Variable | What it is |
+| --- | --- |
+| `DATABASE_URL` | PostgreSQL connection string. The one above matches the Docker container from step 2. |
+| `BETTER_AUTH_SECRET` | Signs and encrypts session data. At least 32 random bytes; keep it private, and use a different one per environment. Changing it signs everyone out. |
+| `BETTER_AUTH_URL` | The public base URL the app is served from (`http://localhost:3000` locally, your real domain in production). Better Auth uses it to build URLs and to check the `Origin` of auth requests, so it must match the address in the browser. |
+
+`.env` is gitignored. Never commit real secrets.
+
+### 4. Apply the database migrations
 
 ```bash
 bun run db:migrate
 ```
 
-Optionally, load demo data (3 users, 8 posts, comments and likes):
+Runs `prisma migrate dev`, which creates all the tables from `prisma/migrations/`. (On a production database use `bunx prisma migrate deploy` instead, which only applies existing migrations.)
+
+### 5. Load demo data (optional)
 
 ```bash
 bun run db:seed
 ```
 
-Sign in as any demo user with password `inkwell-demo-123`:
+Creates 3 users, 8 posts, comments and likes. Sign in as any demo user with password `inkwell-demo-123`:
 
 | User | Email |
 | --- | --- |
@@ -33,13 +96,87 @@ Sign in as any demo user with password `inkwell-demo-123`:
 
 Re-running the seed resets only the demo users and their content; other accounts are left alone. These are local test credentials. Don't seed a production database.
 
-Run the development server:
+### 6. Start the development server
 
 ```bash
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser. Edit `src/app/page.tsx` and the page auto-updates.
+Open [http://localhost:3000](http://localhost:3000). Register a new account or log in with a demo user.
+
+### 7. Run the checks (optional)
+
+```bash
+bun run test
+```
+
+```bash
+bun run test:integration
+```
+
+```bash
+bun run lint
+```
+
+- `test` runs unit and component tests; no database needed.
+- `test:integration` needs the database from step 2. It creates, migrates and uses a separate `inkwell_test` database, so your dev data isn't touched.
+- `lint` is type-aware and needs Next's generated route types. Run `bun dev` once (or `bunx next typegen`) before the first lint.
+
+### 8. Build and run the Docker image
+
+The `Dockerfile` has a `runner` stage: a small production image (Next.js standalone server, no dev dependencies, non-root user). Build it:
+
+```bash
+docker build --target runner -t inkwell .
+```
+
+The image doesn't contain the Prisma CLI, so migrations are applied from your machine (step 4) before the container starts. Run it on the same network as the database, passing the variables at runtime (they are never baked into the image). Note the database host is `inkwell-db` (the container name), not `localhost`:
+
+```bash
+docker run --rm --name inkwell-app --network inkwell -p 3000:3000 -e DATABASE_URL="postgresql://postgres:postgres@inkwell-db:5432/inkwell?schema=public" -e BETTER_AUTH_SECRET="<your secret>" -e BETTER_AUTH_URL="http://localhost:3000" inkwell
+```
+
+Open [http://localhost:3000](http://localhost:3000). Stop the dev server first if it's running, since both use port 3000 (or map another port, e.g. `-p 3001:3000` with `BETTER_AUTH_URL="http://localhost:3001"`).
+
+The other Dockerfile stages run the same checks as CI:
+
+```bash
+docker build --target lint .
+```
+
+```bash
+docker build --target test .
+```
+
+```bash
+docker compose -f docker-compose.ci.yml run --rm integration
+```
+
+```bash
+docker compose -f docker-compose.ci.yml down -v
+```
+
+The last two run the integration tests against a throwaway Postgres and then remove it.
+
+### Cleaning up
+
+```bash
+docker rm -f inkwell-db
+```
+
+```bash
+docker volume rm inkwell-pgdata
+```
+
+```bash
+docker network rm inkwell
+```
+
+## Deployment
+
+`.github/workflows/pipeline.yml` lints, tests and builds every pull request and push to `main`. On `main` it also pushes the runner image to GitHub Container Registry and deploys to Vercel production: it builds first, then runs `prisma migrate deploy`, and only deploys if every migration succeeded (`scripts/deploy.sh`).
+
+It needs these secrets in the GitHub `production` environment: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` and `DIRECT_DATABASE_URL` (a direct, non-pooled connection string for migrations). Set `DATABASE_URL`, `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` (your production URL) in the Vercel project's environment variables.
 
 ## Scripts
 
