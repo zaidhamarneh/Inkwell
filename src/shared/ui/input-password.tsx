@@ -4,7 +4,7 @@ import * as React from "react"
 import { cn } from "cn"
 import { EyeIcon, EyeOffIcon } from "lucide-react"
 
-import { Input } from "@/components/ui/input"
+import { Input } from "@/shared/ui/input"
 
 function InputPassword({
   className,

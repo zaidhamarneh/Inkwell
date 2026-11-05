@@ -10,8 +10,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
+} from "@/shared/ui/form"
+import { Input } from "@/shared/ui/input"
 
 type FormInputProps<TFieldValues extends FieldValues> = {
   control: Control<TFieldValues>
