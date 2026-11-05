@@ -29,10 +29,13 @@ const config = {
   testEnvironment: "node",
   // Tests live next to the code they test, in __tests__ folders.
   //   *.test.ts             unit tests (mocked; `bun run test`)
+  //   *.test.tsx            React component tests (jsdom; `bun run test`)
   //   *.integration.test.ts real test database (`bun run test:integration`)
+  // Component tests opt into a browser-like DOM with a
+  // `@jest-environment jsdom` docblock; everything else runs in Node.
   testMatch: integration
     ? ["<rootDir>/src/**/__tests__/**/*.integration.test.ts"]
-    : ["<rootDir>/src/**/__tests__/**/*.test.ts"],
+    : ["<rootDir>/src/**/__tests__/**/*.test.{ts,tsx}"],
   testPathIgnorePatterns: integration
     ? ["/node_modules/", "/.next/"]
     : ["/node_modules/", "/.next/", "\\.integration\\.test\\.ts$"],
