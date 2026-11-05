@@ -51,7 +51,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser. Edit `src/a
 - `bun run db:generate` — regenerate the Prisma client (also runs on `bun install`)
 - `bun run db:studio` — browse the database in Prisma Studio
 - `bun run db:seed` — load demo data (`prisma/seed.ts`); safe to re-run
-- `bun run test` — unit tests (Jest, mocked, no database needed)
+- `bun run test` — unit and React component tests (Jest, mocked, no database needed)
 - `bun run test:integration` — integration tests against a separate `<db>_test` database
 
 ## Auth REST API
@@ -234,4 +234,12 @@ bun run test:integration
 
 **Integration tests** (`*.integration.test.ts`, 24 tests) run the repositories, ownership checks and the rate-limit SQL against a real **test** database: `DATABASE_URL` with `_test` appended (e.g. `inkwell_test`), or `TEST_DATABASE_URL` if set. It's created and migrated automatically and emptied before each test. The run refuses any database whose name doesn't end in `_test`, so your dev data is never touched. They cover pagination, cascade deletes, the `authorId` second guard, idempotent and concurrent likes, and the rate limiter's window reset and atomicity under concurrent requests.
 
-Not covered yet: React components and hooks (forms, like button, contexts). Those need a browser-like test environment (jsdom + Testing Library).
+**Component tests** (`*.test.tsx`, 39 tests, also run by `bun run test`) render React components in a simulated browser (jsdom + Testing Library) and use them like a user would. Each file starts with `/** @jest-environment jsdom */`.
+
+- **`LikeButton`:** instant feedback, rapid clicks merged into one request after 400 ms, no request when clicks end where they started, one request at a time (a change made meanwhile is sent after), revert + message on a 429, and sending an unsent click when leaving the page.
+- **`LoginForm` / `RegisterForm`:** browser-side validation, server errors placed under the right field ("email taken") or at the form level ("incorrect password"), the password mismatch clearing when *either* password is fixed, and the forms clearing after success.
+- **`AuthContext`:** sign in/up/out call the right API, clear cached data and navigate; failures do neither.
+- **`PostsContext`:** each change refreshes the right data (deleting a post refreshes only the lists), rejected changes refresh nothing, and a thrown action becomes an error result.
+- **Delete dialogs (post and comment):** Cancel keeps the item, the dialog stays open while deleting and shows errors, and closes (or navigates to My feed) only on success.
+
+Static, display-only components (navbar, cards, skeletons) and the shadcn UI components aren't tested; they have no logic of their own.

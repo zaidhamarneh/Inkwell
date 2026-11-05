@@ -1,0 +1,29 @@
+# Integration tests against a throwaway Postgres.
+#   docker compose -f docker-compose.ci.yml run --rm integration
+#   docker compose -f docker-compose.ci.yml down -v
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    # Data lives in memory only: nothing survives `down`.
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  integration:
+    build:
+      context: .
+      target: integration
+    image: inkwell-integration:ci
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Name must end in _test (enforced by jest.integration-env.mjs).
+      TEST_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/inkwell_test
