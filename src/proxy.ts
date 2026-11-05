@@ -29,7 +29,10 @@ const hasPrefix = (pathname: string, prefixes: string[]) =>
       pathname.startsWith(prefix.endsWith("/") ? prefix : `${prefix}/`),
   );
 
-type Kind = "public" | "protected-page" | "protected-api" | "server-action";
+const isLandingPage = (request: NextRequest) =>
+  request.method === "GET" && request.nextUrl.pathname === "/";
+
+type Kind ="public" | "protected-page" | "protected-api" | "server-action";
 
 function classify(request: NextRequest): Kind {
   const { pathname } = request.nextUrl;
@@ -67,8 +70,13 @@ export async function proxy(request: NextRequest) {
       returnHeaders: true,
     });
 
-    const response =
-      session || kind === "public" ? NextResponse.next() : reject(request, kind);
+    let response: NextResponse;
+    if (session && kind === "public" && isLandingPage(request)) {
+      // The landing page is for visitors; signed-in users go to their app.
+      response = NextResponse.redirect(new URL("/dashboard", request.url));
+    } else {
+      response = session || kind === "public" ? NextResponse.next() : reject(request, kind);
+    }
 
     // Refreshed session cookie, or cleared cookies for a dead session.
     for (const cookie of headers.getSetCookie()) {

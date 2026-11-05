@@ -45,7 +45,7 @@ export async function PostContent({
       </HydrateClient>
 
       <section id="comments" aria-labelledby="comments-heading" className="mt-10 grid gap-6">
-        <h2 id="comments-heading" className="text-lg font-semibold">
+        <h2 id="comments-heading" className="font-serif text-2xl font-semibold tracking-tight">
           Comments{" "}
           <Suspense fallback={null}>
             <CommentCount commentsPromise={commentsPromise} />

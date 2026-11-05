@@ -1,28 +1,29 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { RegisterForm } from "./register-form";
 
+export const metadata: Metadata = { title: "Create an account" };
+
 export default function RegisterPage() {
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center gap-6 px-6">
-      <div className="grid gap-1">
-        <h1 className="text-2xl font-semibold">Create an account</h1>
-        <p className="text-sm text-muted-foreground">
-          Start writing on Inkwell.
-        </p>
+    <div className="grid gap-6">
+      <div className="grid gap-1.5">
+        <h1 className="font-serif text-3xl font-semibold tracking-tight">Create an account</h1>
+        <p className="text-sm text-muted-foreground">Start writing on Inkwell. It only takes a minute.</p>
       </div>
 
       <RegisterForm />
 
-      <p className="text-sm text-muted-foreground">
+      <p className="text-center text-sm text-muted-foreground">
         Already have an account?{" "}
         <Link
           href="/login"
-          className="font-medium text-foreground underline underline-offset-4"
+          className="rounded-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           Log in
         </Link>
       </p>
-    </main>
+    </div>
   );
 }

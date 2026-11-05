@@ -13,6 +13,8 @@ type LikeButtonProps = {
   postId: string;
   liked: boolean;
   likeCount: number;
+  /** Show only the number (e.g. in post cards); the accessible label stays full. */
+  compact?: boolean;
 };
 
 /**
@@ -25,7 +27,7 @@ type LikeButtonProps = {
  * The server also rate-limits likes per user (see like-actions.ts); if that
  * rejects a request, the button reverts and shows the message.
  */
-export function LikeButton({ postId, liked, likeCount }: LikeButtonProps) {
+export function LikeButton({ postId, liked, likeCount, compact = false }: LikeButtonProps) {
   // PostsContext saves the like and refreshes post data everywhere.
   const { setLike } = usePosts();
 
@@ -117,12 +119,20 @@ export function LikeButton({ postId, liked, likeCount }: LikeButtonProps) {
         aria-pressed={shownLiked}
         aria-label={shownLiked ? `Unlike (${label})` : `Like (${label})`}
         className={cn(
-          "inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-sm transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50",
-          shownLiked ? "text-rose-600 dark:text-rose-400" : "text-muted-foreground",
+          "inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-sm tabular-nums transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+          shownLiked
+            ? "text-rose-600 hover:bg-rose-500/10 dark:text-rose-400"
+            : "text-muted-foreground hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400",
         )}
       >
-        <HeartIcon aria-hidden className={cn("size-4", shownLiked && "fill-current")} />
-        {label}
+        <HeartIcon
+          aria-hidden
+          className={cn(
+            "size-4 transition-transform motion-reduce:transition-none",
+            shownLiked && "scale-110 fill-current",
+          )}
+        />
+        {compact ? shownCount : label}
       </button>
       {error && (
         <span role="alert" className="text-xs text-destructive">

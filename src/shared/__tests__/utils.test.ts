@@ -1,4 +1,23 @@
-import { formatDate, getInitials } from "../utils";
+import { formatDate, getInitials, getReadingMinutes } from "../utils";
+
+describe("getReadingMinutes", () => {
+  const words = (n: number) => Array.from({ length: n }, () => "word").join(" ");
+
+  it.each([
+    ["", 1],
+    ["   ", 1],
+    [words(1), 1],
+    [words(200), 1],
+    [words(201), 2],
+    [words(1000), 5],
+  ])("%#: %i words → %i min", (text, expected) => {
+    expect(getReadingMinutes(text)).toBe(expected);
+  });
+
+  it("counts words across any whitespace", () => {
+    expect(getReadingMinutes(`${words(150)}\n\n\t${words(150)}`)).toBe(2);
+  });
+});
 
 describe("getInitials", () => {
   it.each([

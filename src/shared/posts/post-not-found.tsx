@@ -4,7 +4,7 @@ import Link from "next/link";
 export function NotYourPost({ postId }: { postId: string }) {
   return (
     <div className="grid gap-3 py-6 text-center">
-      <h2 className="text-2xl font-semibold">You can&apos;t edit this post</h2>
+      <h2 className="font-serif text-3xl font-semibold tracking-tight">You can&apos;t edit this post</h2>
       <p className="text-sm text-muted-foreground">
         Only its author can edit or delete it.
       </p>
@@ -19,7 +19,7 @@ export function NotYourPost({ postId }: { postId: string }) {
 export function PostNotFound() {
   return (
     <div className="grid gap-3 py-6 text-center">
-      <h2 className="text-2xl font-semibold">Post not found</h2>
+      <h2 className="font-serif text-3xl font-semibold tracking-tight">Post not found</h2>
       <p className="text-sm text-muted-foreground">
         It may have been deleted, or the link is wrong.
       </p>

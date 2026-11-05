@@ -19,7 +19,7 @@ export default function ProtectedError({
 
   return (
     <main className="mx-auto grid w-full max-w-3xl gap-3 px-4 py-16 text-center sm:px-6">
-      <h1 className="text-2xl font-semibold">Something went wrong</h1>
+      <h1 className="font-serif text-3xl font-semibold tracking-tight">Something went wrong</h1>
       <p className="text-sm text-muted-foreground">
         This page couldn&apos;t load. Try again in a moment.
       </p>

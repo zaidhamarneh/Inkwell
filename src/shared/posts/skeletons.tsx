@@ -1,28 +1,28 @@
-import { Card, CardContent, CardFooter, CardHeader } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";
 
 // Suspense fallbacks shaped like the content they stand in for, so the page
 // doesn't jump when the real data streams in.
 
+/** Same frame as PostCard: title, two excerpt lines, byline + actions row. */
 export function PostCardSkeleton() {
   return (
-    <Card aria-hidden>
-      <CardHeader className="gap-3">
-        <div className="flex items-center gap-2">
-          <Skeleton className="size-6 rounded-full" />
-          <Skeleton className="h-4 w-40" />
-        </div>
-        <Skeleton className="h-6 w-3/4" />
-      </CardHeader>
-      <CardContent className="grid gap-2">
+    <div aria-hidden className="rounded-xl border bg-card p-5 shadow-xs sm:p-6">
+      <Skeleton className="h-7 w-3/4" />
+      <div className="mt-3 grid gap-2">
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-5/6" />
-      </CardContent>
-      <CardFooter className="gap-3 border-t py-3">
-        <Skeleton className="h-5 w-16" />
-        <Skeleton className="h-5 w-24" />
-      </CardFooter>
-    </Card>
+      </div>
+      <div className="mt-5 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Skeleton className="size-6 rounded-full" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+        <div className="flex gap-3">
+          <Skeleton className="h-5 w-10" />
+          <Skeleton className="h-5 w-10" />
+        </div>
+      </div>
+    </div>
   );
 }
 

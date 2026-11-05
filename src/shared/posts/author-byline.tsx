@@ -7,18 +7,26 @@ type AuthorBylineProps = {
   date: Date;
   /** Shows "(edited)" when set and different from `date`. */
   updatedAt?: Date;
+  /** Adds "· N min read" when set. */
+  readingMinutes?: number;
   size?: "sm" | "default";
 };
 
 /** Avatar, name and date, e.g. "(AL) Ada Lovelace · Nov 5, 2026". */
-export function AuthorByline({ author, date, updatedAt, size = "default" }: AuthorBylineProps) {
+export function AuthorByline({
+  author,
+  date,
+  updatedAt,
+  readingMinutes,
+  size = "default",
+}: AuthorBylineProps) {
   const edited = updatedAt && updatedAt.getTime() - date.getTime() > 60_000;
 
   return (
     <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
       <Avatar size={size === "sm" ? "sm" : "default"}>
         {author.image && <AvatarImage src={author.image} alt="" />}
-        <AvatarFallback className="font-medium text-foreground">
+        <AvatarFallback className="bg-accent font-semibold text-accent-foreground">
           {getInitials(author.name)}
         </AvatarFallback>
       </Avatar>
@@ -28,6 +36,12 @@ export function AuthorByline({ author, date, updatedAt, size = "default" }: Auth
         {formatDate(date)}
       </time>
       {edited && <span className="shrink-0">(edited)</span>}
+      {readingMinutes !== undefined && (
+        <>
+          <span aria-hidden>·</span>
+          <span className="shrink-0 whitespace-nowrap">{readingMinutes} min read</span>
+        </>
+      )}
     </div>
   );
 }

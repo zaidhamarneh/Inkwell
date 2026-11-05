@@ -17,6 +17,8 @@ export type PostSummary = {
   updatedAt: Date;
   likeCount: number;
   commentCount: number;
+  /** Estimated reading time of the full post, in minutes (at least 1). */
+  readingMinutes: number;
   /** Whether the current user has liked it. */
   likedByMe: boolean;
   /** Whether the current user wrote it. */

@@ -7,8 +7,8 @@ import { PostFeedSkeleton } from "@/shared/posts/skeletons";
 export default function FeedPage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
-      <header className="mb-6 grid gap-1">
-        <h1 className="text-2xl font-semibold">My feed</h1>
+      <header className="mb-8 grid gap-1.5">
+        <h1 className="font-serif text-3xl font-semibold tracking-tight">My feed</h1>
         <p className="text-sm text-muted-foreground">Everything you&apos;ve posted.</p>
       </header>
 

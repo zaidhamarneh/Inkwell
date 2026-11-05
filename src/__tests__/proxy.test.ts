@@ -89,6 +89,20 @@ describe("proxy: with a session cookie", () => {
     expect(isPassThrough(await proxy(request("/api/v1/posts", { method: "POST", cookie: true })))).toBe(true);
   });
 
+  it("sends a signed-in visitor from the landing page to /dashboard, keeping refreshed cookies", async () => {
+    sessionIs(true, "better-auth.session_token=new; Path=/");
+    const res = await proxy(request("/", { cookie: true }));
+    expect(res.status).toBe(307);
+    expect(redirectTarget(res)).toBe("http://localhost:3000/dashboard");
+    expect(res.headers.get("set-cookie")).toContain("session_token=new");
+  });
+
+  it("shows the landing page to signed-out visitors and to dead sessions", async () => {
+    expect(isPassThrough(await proxy(request("/")))).toBe(true);
+    sessionIs(false);
+    expect(isPassThrough(await proxy(request("/", { cookie: true })))).toBe(true);
+  });
+
   it("treats a revoked/expired session as signed out and clears its cookie", async () => {
     sessionIs(false, "better-auth.session_token=; Max-Age=0");
 

@@ -25,7 +25,7 @@ export function PostFeed({ scope, empty }: PostFeedProps) {
 
   if (posts.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+      <div className="rounded-xl border border-dashed bg-card/50 px-6 py-14 text-center text-muted-foreground">
         {empty}
       </div>
     );

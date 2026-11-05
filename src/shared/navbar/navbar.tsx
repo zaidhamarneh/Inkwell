@@ -1,6 +1,7 @@
 import { PenLineIcon } from "lucide-react";
 import Link from "next/link";
 
+import { Logo } from "@/shared/brand/logo";
 import { ThemeToggle } from "@/shared/theme/theme-toggle";
 import { Button } from "@/shared/ui/button";
 
@@ -13,14 +14,9 @@ import { UserMenu } from "./user-menu";
  */
 export function Navbar() {
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">
+    <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2 sm:px-6">
-        <Link
-          href="/dashboard"
-          className="rounded-md text-base font-semibold tracking-tight outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          Inkwell
-        </Link>
+        <Logo href="/dashboard" />
 
         <NavLinks className="order-last -mx-1 w-full overflow-x-auto sm:order-none sm:mx-0 sm:w-auto" />
 

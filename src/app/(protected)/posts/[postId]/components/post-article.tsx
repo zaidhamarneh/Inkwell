@@ -24,19 +24,24 @@ export function PostArticle({ postId }: { postId: string }) {
   }
 
   return (
-    <article className="grid gap-6">
-      <header className="grid gap-4">
-        <h1 className="text-3xl leading-tight font-semibold tracking-tight wrap-break-word">
+    <article className="grid gap-8">
+      <header className="grid gap-5 border-b pb-8">
+        <h1 className="font-serif text-4xl leading-[1.1] font-semibold tracking-tight text-balance wrap-break-word sm:text-5xl">
           {post.title}
         </h1>
-        <AuthorByline author={post.author} date={post.createdAt} updatedAt={post.updatedAt} />
+        <AuthorByline
+          author={post.author}
+          date={post.createdAt}
+          updatedAt={post.updatedAt}
+          readingMinutes={post.readingMinutes}
+        />
       </header>
 
-      <div className="text-base leading-relaxed wrap-break-word whitespace-pre-wrap">
+      <div className="font-serif text-lg leading-8 wrap-break-word whitespace-pre-wrap text-foreground/90 sm:text-xl sm:leading-9">
         {post.content}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-y py-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-y py-3">
         <LikeButton
           postId={post.id}
           liked={post.likedByMe}

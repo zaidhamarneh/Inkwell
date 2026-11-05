@@ -22,6 +22,15 @@ const dateFormat = new Intl.DateTimeFormat("en", {
   timeZone: "UTC",
 })
 
+/** Average adult silent-reading speed, in words per minute. */
+const WORDS_PER_MINUTE = 200
+
+/** Estimated minutes to read `text`, rounded up; never less than 1. */
+export function getReadingMinutes(text: string) {
+  const words = text.trim().split(/\s+/).filter(Boolean).length
+  return Math.max(1, Math.ceil(words / WORDS_PER_MINUTE))
+}
+
 /** "Nov 5, 2026" */
 export function formatDate(date: Date) {
   return dateFormat.format(date)

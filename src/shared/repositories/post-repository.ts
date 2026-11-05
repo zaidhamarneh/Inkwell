@@ -3,6 +3,7 @@ import "server-only";
 import { Prisma } from "@/generated/prisma/client";
 import type { PostInput } from "@/shared/schemas/post/post";
 import { prisma } from "@/shared/db/db";
+import { getReadingMinutes } from "@/shared/utils";
 
 import type { PostDetail, PostPage, PostSummary } from "./types";
 
@@ -38,6 +39,7 @@ function toDetail(row: PostRow, viewerId: string): PostDetail {
     updatedAt: row.updatedAt,
     likeCount: row._count.likes,
     commentCount: row._count.comments,
+    readingMinutes: getReadingMinutes(row.content),
     likedByMe: row.likes.length > 0,
     isMine: row.authorId === viewerId,
   };
