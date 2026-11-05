@@ -163,7 +163,7 @@ describe("toApiPost / toPublicUser", () => {
       name: "Ada",
       email: "ada@example.com",
       emailVerified: true,
-      image: undefined,
+      image: "https://example.com/ada.png",
       createdAt: date,
       passwordHash: "should-not-leak",
     };
@@ -172,7 +172,6 @@ describe("toApiPost / toPublicUser", () => {
       name: "Ada",
       email: "ada@example.com",
       emailVerified: true,
-      image: null,
       createdAt: "2026-01-02T03:04:05.000Z",
     });
   });

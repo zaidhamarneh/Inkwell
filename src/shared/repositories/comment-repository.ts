@@ -11,7 +11,7 @@ const commentSelect = {
   createdAt: true,
   updatedAt: true,
   authorId: true,
-  author: { select: { id: true, name: true, image: true } },
+  author: { select: { id: true, name: true } },
 } satisfies Prisma.CommentSelect;
 
 type CommentRow = Prisma.CommentGetPayload<{ select: typeof commentSelect }>;

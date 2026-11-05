@@ -216,7 +216,7 @@ JSON endpoints under `/api/v1/auth`, built as Next.js Route Handlers (Node.js ru
 | `POST` | `/api/v1/auth/login` | `{ email, password }` | `200 { data: { user } }` + session cookie |
 | `POST` | `/api/v1/auth/logout` | none | `204`, cookies cleared (also when not signed in) |
 
-`user` is `{ id, name, email, emailVerified, image, createdAt }`. Password hashes and session tokens are never returned in the body.
+`user` is `{ id, name, email, emailVerified, createdAt }`. Password hashes and session tokens are never returned in the body.
 
 ### Errors
 
@@ -329,7 +329,7 @@ Client-side app state lives in two React contexts in `src/shared/state/`.
 **`auth-context.tsx`: authentication**
 
 - `AuthProvider` (root layout) → `useAuth()` returns `signIn`, `signUp` and `signOut`. Used by the login and register forms and the user menu. Each one calls the auth API, clears all cached data (so nothing from the previous user stays in memory) and navigates.
-- `CurrentUserProvider` (protected layout) → `useCurrentUser()` returns `{ id, name, email, image }`. The user is loaded and verified on the server for every request, so the context never holds a stale or forged user. The session itself stays in an HttpOnly cookie.
+- `CurrentUserProvider` (protected layout) → `useCurrentUser()` returns `{ id, name, email }`. The user is loaded and verified on the server for every request, so the context never holds a stale or forged user. The session itself stays in an HttpOnly cookie.
 
 **`posts-context.tsx`: blog post data**
 

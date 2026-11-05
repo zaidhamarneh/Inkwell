@@ -47,7 +47,7 @@ describe("createPost / getPost", () => {
       readingMinutes: 1,
       likedByMe: true,
       isMine: false,
-      author: { id: ada.id, name: "User ada", image: null },
+      author: { id: ada.id, name: "User ada" },
     });
     await expect(getPost(created.id, ada.id)).resolves.toMatchObject({ likedByMe: false, isMine: true });
   });

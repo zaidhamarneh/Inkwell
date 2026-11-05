@@ -26,9 +26,7 @@ async function ProtectedShell({ children }: { children: React.ReactNode }) {
   // App state for signed-in pages (Context API): the verified user and the
   // blog post data/actions. See src/shared/state/.
   return (
-    <CurrentUserProvider
-      user={{ id: user.id, name: user.name, email: user.email, image: user.image ?? null }}
-    >
+    <CurrentUserProvider user={{ id: user.id, name: user.name, email: user.email }}>
       <PostsProvider>
         <Navbar />
         <div className="flex flex-1 flex-col">{children}</div>

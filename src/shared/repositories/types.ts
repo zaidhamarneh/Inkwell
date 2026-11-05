@@ -4,7 +4,6 @@
 export type PostAuthor = {
   id: string;
   name: string;
-  image: string | null;
 };
 
 /** A post as shown in a list (dashboard, feed). */

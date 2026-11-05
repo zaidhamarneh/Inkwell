@@ -1,5 +1,5 @@
 import type { PostAuthor } from "@/shared/repositories/types";
-import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
+import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import { formatDate, getInitials } from "@/shared/utils";
 
 type AuthorBylineProps = {
@@ -25,7 +25,6 @@ export function AuthorByline({
   return (
     <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
       <Avatar size={size === "sm" ? "sm" : "default"}>
-        {author.image && <AvatarImage src={author.image} alt="" />}
         <AvatarFallback className="bg-accent font-semibold text-accent-foreground">
           {getInitials(author.name)}
         </AvatarFallback>

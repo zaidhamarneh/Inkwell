@@ -151,7 +151,6 @@ export function toPublicUser(user: {
   name: string;
   email: string;
   emailVerified: boolean;
-  image?: string | null;
   createdAt: Date;
 }): PublicUser {
   return {
@@ -159,7 +158,6 @@ export function toPublicUser(user: {
     name: user.name,
     email: user.email,
     emailVerified: user.emailVerified,
-    image: user.image ?? null,
     createdAt: user.createdAt.toISOString(),
   };
 }

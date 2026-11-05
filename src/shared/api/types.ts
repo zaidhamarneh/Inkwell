@@ -28,7 +28,6 @@ export type PublicUser = {
   name: string;
   email: string;
   emailVerified: boolean;
-  image: string | null;
   createdAt: string;
 };
 

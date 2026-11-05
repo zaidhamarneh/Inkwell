@@ -30,7 +30,7 @@ const signInAs = (id: string | null) =>
 const comment: CommentItem = {
   id: "c1",
   content: "Hi",
-  author: { id: "ben", name: "Ben", image: null },
+  author: { id: "ben", name: "Ben" },
   createdAt: new Date(),
   updatedAt: new Date(),
   isMine: true,

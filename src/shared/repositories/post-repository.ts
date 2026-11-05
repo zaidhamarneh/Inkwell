@@ -10,7 +10,7 @@ import type { PostDetail, PostPage, PostSummary } from "./types";
 export const POSTS_PAGE_SIZE = 20;
 const EXCERPT_LENGTH = 200;
 
-const authorSelect = { id: true, name: true, image: true } satisfies Prisma.UserSelect;
+const authorSelect = { id: true, name: true } satisfies Prisma.UserSelect;
 
 /** Fields needed to show a post to `viewerId` (counts, liked-by-me). */
 function postSelect(viewerId: string) {

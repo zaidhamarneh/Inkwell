@@ -41,7 +41,7 @@ const apiPostRow = {
 const comment = {
   id: "c1",
   content: "Hi",
-  author: { id: "u1", name: "Ada", image: null },
+  author: { id: "u1", name: "Ada" },
   createdAt: new Date(),
   updatedAt: new Date(),
   isMine: true,

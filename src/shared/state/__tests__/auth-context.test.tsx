@@ -21,7 +21,6 @@ const user = {
   name: "Ada",
   email: "ada@example.com",
   emailVerified: true,
-  image: null,
   createdAt: "2026-01-01T00:00:00.000Z",
 };
 
@@ -121,7 +120,7 @@ describe("useCurrentUser", () => {
       return <span>{useCurrentUser().name}</span>;
     }
     render(
-      <CurrentUserProvider user={{ id: "u1", name: "Ada", email: "ada@example.com", image: null }}>
+      <CurrentUserProvider user={{ id: "u1", name: "Ada", email: "ada@example.com" }}>
         <Name />
       </CurrentUserProvider>,
     );

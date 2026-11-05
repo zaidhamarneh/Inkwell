@@ -58,7 +58,7 @@ FROM source AS build
 RUN BETTER_AUTH_SECRET=build-time-placeholder-not-a-real-secret \
     BETTER_AUTH_URL=http://localhost:3000 \
     bun run build \
- && cp -r public .next/standalone/ \
+ && if [ -d public ]; then cp -r public .next/standalone/; fi \
  && cp -r .next/static .next/standalone/.next/
 
 # ---- runner: minimal self-hostable app image (no Bun, no dev deps) ----

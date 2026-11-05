@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { useAuth, useCurrentUser } from "@/shared/state/auth-context";
 import { getInitials } from "@/shared/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
+import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,7 +52,6 @@ export function UserMenu() {
         className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <Avatar>
-          {user.image && <AvatarImage src={user.image} alt="" />}
           <AvatarFallback className="font-medium text-foreground">
             {getInitials(user.name, user.email)}
           </AvatarFallback>
