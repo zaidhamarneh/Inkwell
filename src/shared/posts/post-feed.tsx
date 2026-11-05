@@ -1,8 +1,6 @@
 "use client";
 
-import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
-
-import { useTRPC } from "@/shared/trpc/client";
+import { usePostFeed } from "@/shared/state/posts-context";
 import { Button } from "@/shared/ui/button";
 
 import { PostCard } from "./post-card";
@@ -15,19 +13,13 @@ type PostFeedProps = {
 };
 
 /**
- * Post cards loaded with tRPC (trpc.posts.list), 20 at a time with a
+ * Post cards from PostsContext (usePostFeed), 20 at a time with a
  * "Load more" button. The first page is prefetched on the server, so it
  * renders immediately without a loading state.
  */
 export function PostFeed({ scope, empty }: PostFeedProps) {
-  const trpc = useTRPC();
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isFetchNextPageError } =
-    useSuspenseInfiniteQuery(
-      trpc.posts.list.infiniteQueryOptions(
-        { scope },
-        { getNextPageParam: (lastPage) => lastPage.nextCursor },
-      ),
-    );
+    usePostFeed(scope);
 
   const posts = data.pages.flatMap((page) => page.items);
 

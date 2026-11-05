@@ -1,17 +1,16 @@
 "use client";
 
-import { useSuspenseQuery } from "@tanstack/react-query";
 import Link from "next/link";
 
 import { AuthorByline } from "@/shared/posts/author-byline";
 import { LikeButton } from "@/shared/posts/like-button";
-import { useTRPC } from "@/shared/trpc/client";
+import { usePost } from "@/shared/state/posts-context";
 
 import { PostAuthorActions } from "./post-author-actions";
 
 export function PostArticle({ postId }: { postId: string }) {
-  const trpc = useTRPC();
-  const { data: post } = useSuspenseQuery(trpc.posts.byId.queryOptions({ postId }));
+  // From PostsContext; prefetched on the server, so it renders immediately.
+  const post = usePost(postId);
 
   if (!post) {
     return (

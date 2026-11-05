@@ -1,20 +1,19 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
-import { apiPost, applyApiError } from "@/shared/api/client";
-import type { AuthUserResponse } from "@/shared/api/types";
+import { applyApiError } from "@/shared/api/client";
 import { FormInput } from "@/shared/form-helper/form-input";
 import { FormInputPassword } from "@/shared/form-helper/form-input-password";
 import { registerSchema, type RegisterInput } from "@/shared/schemas/auth/auth";
+import { useAuth } from "@/shared/state/auth-context";
 import { Button } from "@/shared/ui/button";
 import { Form } from "@/shared/ui/form";
 
 export function RegisterForm() {
-  const router = useRouter();
+  const { signUp } = useAuth();
 
   const form = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
@@ -36,10 +35,9 @@ export function RegisterForm() {
   const isSubmitting = form.formState.isSubmitting;
 
   async function onSubmit(values: RegisterInput) {
-    const result = await apiPost<AuthUserResponse["data"]>(
-      "/auth/register",
-      values,
-    );
+    // AuthContext creates the account (signed in), clears cached data and
+    // goes to /dashboard.
+    const result = await signUp(values);
 
     if (!result.ok) {
       applyApiError(result.error, form.setError, [
@@ -51,9 +49,8 @@ export function RegisterForm() {
       return;
     }
 
+    // Next keeps this page alive (hidden) after leaving it; clear it now.
     form.reset();
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (

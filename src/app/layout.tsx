@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { AuthProvider } from "@/shared/state/auth-context";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { TRPCReactProvider } from "@/shared/trpc/client";
 
@@ -31,7 +32,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
-          <TRPCReactProvider>{children}</TRPCReactProvider>
+          <TRPCReactProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </TRPCReactProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,19 +1,18 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
-import { apiPost, applyApiError } from "@/shared/api/client";
-import type { AuthUserResponse } from "@/shared/api/types";
+import { applyApiError } from "@/shared/api/client";
 import { FormInput } from "@/shared/form-helper/form-input";
 import { FormInputPassword } from "@/shared/form-helper/form-input-password";
 import { loginSchema, type LoginInput } from "@/shared/schemas/auth/auth";
+import { useAuth } from "@/shared/state/auth-context";
 import { Button } from "@/shared/ui/button";
 import { Form } from "@/shared/ui/form";
 
 export function LoginForm() {
-  const router = useRouter();
+  const { signIn } = useAuth();
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -24,10 +23,8 @@ export function LoginForm() {
   const isSubmitting = form.formState.isSubmitting;
 
   async function onSubmit(values: LoginInput) {
-    const result = await apiPost<AuthUserResponse["data"]>(
-      "/auth/login",
-      values,
-    );
+    // AuthContext signs in, clears cached data and goes to /dashboard.
+    const result = await signIn(values);
 
     if (!result.ok) {
       applyApiError(result.error, form.setError, ["email", "password"]);
@@ -35,9 +32,9 @@ export function LoginForm() {
       return;
     }
 
+    // Next keeps this page alive (hidden) after leaving it, so clear the
+    // email and password now rather than when the user comes back.
     form.reset();
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (

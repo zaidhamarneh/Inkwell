@@ -4,11 +4,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
-import { callAction } from "@/shared/actions/call-action";
-import { editComment } from "@/shared/actions/comment-actions";
 import { applyApiError } from "@/shared/api/client";
 import { FormTextarea } from "@/shared/form-helper/form-textarea";
 import { commentSchema, type CommentInput } from "@/shared/schemas/comment/comment";
+import { usePosts } from "@/shared/state/posts-context";
 import { Button } from "@/shared/ui/button";
 import { Form } from "@/shared/ui/form";
 
@@ -21,6 +20,7 @@ type EditCommentFormProps = {
 
 /** Inline editor for one of your own comments. The server re-checks ownership. */
 export function EditCommentForm({ commentId, content, onDone }: EditCommentFormProps) {
+  const { editComment } = usePosts();
   const form = useForm<CommentInput>({
     resolver: zodResolver(commentSchema),
     defaultValues: { content },
@@ -37,7 +37,7 @@ export function EditCommentForm({ commentId, content, onDone }: EditCommentFormP
   const isSubmitting = form.formState.isSubmitting;
 
   async function onSubmit(values: CommentInput) {
-    const result = await callAction(() => editComment(commentId, values));
+    const result = await editComment(commentId, values);
     if (!result.ok) {
       applyApiError(result.error, form.setError, ["content"]);
       return;

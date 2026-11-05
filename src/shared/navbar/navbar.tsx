@@ -5,13 +5,13 @@ import { ThemeToggle } from "@/shared/theme/theme-toggle";
 import { Button } from "@/shared/ui/button";
 
 import { NavLinks } from "./nav-links";
-import { UserMenu, type MenuUser } from "./user-menu";
+import { UserMenu } from "./user-menu";
 
 /**
  * Top bar for signed-in pages: brand, page links, theme switch and the
- * account menu. On narrow screens the links move to a second row.
+ * account menu (which reads the user from AuthContext). On narrow screens the links move to a second row.
  */
-export function Navbar({ user }: { user: MenuUser }) {
+export function Navbar() {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2 sm:px-6">
@@ -32,7 +32,7 @@ export function Navbar({ user }: { user: MenuUser }) {
             </Link>
           </Button>
           <ThemeToggle />
-          <UserMenu user={user} />
+          <UserMenu />
         </div>
       </div>
     </header>

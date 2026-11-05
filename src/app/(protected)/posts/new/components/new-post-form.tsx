@@ -2,14 +2,12 @@
 
 import { useRouter } from "next/navigation";
 
-import { apiPost } from "@/shared/api/client";
-import type { PostResponse } from "@/shared/api/types";
 import { PostForm } from "@/shared/posts/post-form";
-import { useInvalidatePosts } from "@/shared/posts/use-invalidate-posts";
+import { usePosts } from "@/shared/state/posts-context";
 
 export function NewPostForm() {
   const router = useRouter();
-  const invalidatePosts = useInvalidatePosts();
+  const { createPost } = usePosts();
 
   return (
     <PostForm
@@ -17,10 +15,10 @@ export function NewPostForm() {
       pendingLabel="Publishing…"
       cancelHref="/feed"
       onSubmit={async (values) => {
-        const result = await apiPost<PostResponse["data"]>("/posts", values);
+        // PostsContext saves it and refreshes the dashboard and feed.
+        const result = await createPost(values);
         if (!result.ok) return result.error;
 
-        await invalidatePosts();
         router.push(`/posts/${result.data.post.id}`);
         router.refresh();
         return null;

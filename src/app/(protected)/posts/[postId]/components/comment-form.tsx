@@ -1,21 +1,17 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 
-import { addComment } from "@/shared/actions/comment-actions";
-import { callAction } from "@/shared/actions/call-action";
 import { applyApiError } from "@/shared/api/client";
 import { FormTextarea } from "@/shared/form-helper/form-textarea";
 import { commentSchema, type CommentInput } from "@/shared/schemas/comment/comment";
-import { useTRPC } from "@/shared/trpc/client";
+import { usePosts } from "@/shared/state/posts-context";
 import { Button } from "@/shared/ui/button";
 import { Form } from "@/shared/ui/form";
 
 export function CommentForm({ postId }: { postId: string }) {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
+  const { addComment } = usePosts();
   const form = useForm<CommentInput>({
     resolver: zodResolver(commentSchema),
     defaultValues: { content: "" },
@@ -25,15 +21,13 @@ export function CommentForm({ postId }: { postId: string }) {
   const isSubmitting = form.formState.isSubmitting;
 
   async function onSubmit(values: CommentInput) {
-    const result = await callAction(() => addComment(postId, values));
+    // PostsContext saves it; the page and the cards' comment counts refresh.
+    const result = await addComment(postId, values);
     if (!result.ok) {
       applyApiError(result.error, form.setError, ["content"]);
       return;
     }
-    // The server action refreshes this page (the comment list). Post cards
-    // elsewhere show a comment count from tRPC, so mark those as stale too.
     form.reset();
-    void queryClient.invalidateQueries(trpc.posts.list.pathFilter());
   }
 
   return (

@@ -3,12 +3,10 @@
 import { useRouter } from "next/navigation";
 import { use } from "react";
 
-import { apiPut } from "@/shared/api/client";
-import type { PostResponse } from "@/shared/api/types";
 import { PostForm } from "@/shared/posts/post-form";
 import { NotYourPost, PostNotFound } from "@/shared/posts/post-not-found";
-import { useInvalidatePosts } from "@/shared/posts/use-invalidate-posts";
 import type { PostInput } from "@/shared/schemas/post/post";
+import { usePosts } from "@/shared/state/posts-context";
 
 /** What the edit page may show, decided on the server by the ownership check. */
 export type EditPostState =
@@ -24,7 +22,7 @@ type EditPostFormProps = {
 
 export function EditPostForm({ postId, statePromise }: EditPostFormProps) {
   const router = useRouter();
-  const invalidatePosts = useInvalidatePosts();
+  const { updatePost } = usePosts();
   const state = use(statePromise);
   const postHref = `/posts/${postId}`;
 
@@ -39,13 +37,10 @@ export function EditPostForm({ postId, statePromise }: EditPostFormProps) {
       pendingLabel="Saving…"
       cancelHref={postHref}
       onSubmit={async (values) => {
-        const result = await apiPut<PostResponse["data"]>(
-          `/posts/${postId}`,
-          values,
-        );
+        // PostsContext saves it and refreshes this post and the lists.
+        const result = await updatePost(postId, values);
         if (!result.ok) return result.error;
 
-        await invalidatePosts();
         router.push(postHref);
         router.refresh();
         return null;

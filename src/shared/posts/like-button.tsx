@@ -1,13 +1,10 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "cn";
 import { HeartIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { setPostLike } from "@/shared/actions/like-actions";
-import { callAction } from "@/shared/actions/call-action";
-import { useTRPC } from "@/shared/trpc/client";
+import { usePosts } from "@/shared/state/posts-context";
 
 /** Clicks closer together than this are merged into one request. */
 const SEND_DELAY_MS = 400;
@@ -29,8 +26,8 @@ type LikeButtonProps = {
  * rejects a request, the button reverts and shows the message.
  */
 export function LikeButton({ postId, liked, likeCount }: LikeButtonProps) {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
+  // PostsContext saves the like and refreshes post data everywhere.
+  const { setLike } = usePosts();
 
   // The state the user clicked to and the server hasn't confirmed yet
   // (null = nothing pending, show the server's values).
@@ -53,10 +50,10 @@ export function LikeButton({ postId, liked, likeCount }: LikeButtonProps) {
       clearTimeout(timerRef.current);
       const want = wantRef.current;
       if (want !== null && want !== serverLikedRef.current) {
-        void callAction(() => setPostLike(postId, want));
+        void setLike(postId, want);
       }
     };
-  }, [postId]);
+  }, [postId, setLike]);
 
   const shownLiked = pending ?? liked;
   const shownCount =
@@ -78,7 +75,9 @@ export function LikeButton({ postId, liked, likeCount }: LikeButtonProps) {
     }
 
     sendingRef.current = true;
-    const result = await callAction(() => setPostLike(postId, want));
+    // Resolves after the refreshed post data has arrived, so dropping the
+    // pending state below doesn't flicker back to the old count.
+    const result = await setLike(postId, want);
 
     if (!result.ok) {
       sendingRef.current = false;
@@ -89,9 +88,6 @@ export function LikeButton({ postId, liked, likeCount }: LikeButtonProps) {
     }
 
     serverLikedRef.current = result.data.liked;
-    // Refetch post queries so the props carry the confirmed values before
-    // the pending state is dropped (no flicker back to the old count).
-    await queryClient.invalidateQueries(trpc.posts.pathFilter());
     sendingRef.current = false;
 
     if (wantRef.current === want) {

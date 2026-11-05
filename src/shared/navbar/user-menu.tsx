@@ -1,10 +1,9 @@
 "use client";
 
 import { LogOutIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { apiPost } from "@/shared/api/client";
+import { useAuth, useCurrentUser } from "@/shared/state/auth-context";
 import { getInitials } from "@/shared/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import {
@@ -16,14 +15,9 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 
-export type MenuUser = {
-  name: string;
-  email: string;
-  image: string | null;
-};
-
-export function UserMenu({ user }: { user: MenuUser }) {
-  const router = useRouter();
+export function UserMenu() {
+  const user = useCurrentUser();
+  const { signOut: signOutUser } = useAuth();
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<"idle" | "pending" | "failed">("idle");
 
@@ -39,18 +33,16 @@ export function UserMenu({ user }: { user: MenuUser }) {
     event.preventDefault();
     setStatus("pending");
 
-    // Revokes the session in the database and clears the cookie.
-    const result = await apiPost("/auth/logout");
+    // Revokes the session, clears cached data and goes to /login (AuthContext).
+    const result = await signOutUser();
     if (!result.ok) {
       setStatus("failed");
       return;
     }
 
-    // Signed out: close the card before leaving the page.
+    // Signed out (AuthContext is navigating to /login): close the card.
     setStatus("idle");
     setOpen(false);
-    router.replace("/login");
-    router.refresh();
   }
 
   return (

@@ -155,3 +155,21 @@ Pages render their shell right away and stream data in behind `<Suspense>` skele
 - **Awaited on purpose**: the session check in `(protected)/layout.tsx` (nothing renders before it passes) and whether a post exists on its page (decides "not found").
 
 A failed promise or query shows `(protected)/error.tsx` with a "Try again" button.
+
+## State management (Context API)
+
+Client-side app state lives in two React contexts in `src/shared/state/`.
+
+**`auth-context.tsx`: authentication**
+
+- `AuthProvider` (root layout) → `useAuth()` returns `signIn`, `signUp` and `signOut`. Used by the login and register forms and the user menu. Each one calls the auth API, clears all cached data (so nothing from the previous user stays in memory) and navigates.
+- `CurrentUserProvider` (protected layout) → `useCurrentUser()` returns `{ id, name, email, image }`. The user is loaded and verified on the server for every request, so the context never holds a stale or forged user. The session itself stays in an HttpOnly cookie.
+
+**`posts-context.tsx`: blog post data**
+
+- `PostsProvider` (protected layout) is the only way client components read or change posts:
+  - reading: `usePostFeed("all" | "mine")`, `usePost(postId)`
+  - changing: `usePosts()` returns `createPost`, `updatePost`, `deletePost`, `setLike`, `addComment`, `editComment` and `deleteComment`
+- After each change, the context refreshes the affected post data, so the dashboard, feed and post page stay in sync. Fetched data is cached by React Query (through tRPC) underneath.
+
+The server still enforces sign-in, ownership and rate limits on every request; the contexts only organise client state.

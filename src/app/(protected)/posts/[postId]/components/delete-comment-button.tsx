@@ -1,12 +1,9 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
 import { Trash } from "lucide-react";
 import { useState } from "react";
 
-import { callAction } from "@/shared/actions/call-action";
-import { deleteComment } from "@/shared/actions/comment-actions";
-import { useTRPC } from "@/shared/trpc/client";
+import { usePosts } from "@/shared/state/posts-context";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,8 +19,7 @@ import { Button } from "@/shared/ui/button";
 
 /** Trash icon that asks for confirmation before deleting your comment. */
 export function DeleteCommentButton({ commentId }: { commentId: string }) {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
+  const { deleteComment } = usePosts();
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +32,7 @@ export function DeleteCommentButton({ commentId }: { commentId: string }) {
 
     // The server checks you wrote the comment; on success it refreshes the
     // page and the comment disappears.
-    const result = await callAction(() => deleteComment(commentId));
+    const result = await deleteComment(commentId);
     setDeleting(false);
     if (!result.ok) {
       setError(result.error.message);
@@ -44,8 +40,6 @@ export function DeleteCommentButton({ commentId }: { commentId: string }) {
     }
 
     setOpen(false);
-    // Comment counts on post cards come from tRPC.
-    void queryClient.invalidateQueries(trpc.posts.list.pathFilter());
   }
 
   return (
