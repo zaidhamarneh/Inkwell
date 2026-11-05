@@ -9,13 +9,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "oxlint --type-aware --deny-warnings",
+    "lint": "next typegen && oxlint --type-aware --deny-warnings",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
     "test": "jest",
+    "test:coverage": "jest --coverage",
     "test:integration": "TEST_SCOPE=integration jest"
   },
   "dependencies": {

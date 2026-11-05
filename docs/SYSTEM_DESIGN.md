@@ -249,7 +249,9 @@ Implemented as a single atomic `INSERT … ON CONFLICT DO UPDATE` in Postgres, s
 
 ### Validation and errors
 
-Zod schemas in `src/shared/schemas/` are imported by both the React Hook Form forms and the server handlers. Every API returns the same error shape and status codes (`400`, `401`, `403`, `404`, `409`, `415`, `422`, `429`, `500`), and server errors carry field-level messages that the forms place under the right input.
+Zod schemas in `src/shared/schemas/` are imported by both the React Hook Form forms and the server handlers. They set length limits on every text field (name 100, email 254, password 8–128, post title 150, post content 20,000, comment 2,000). Better Auth's own `/api/auth/sign-up/email` and `/api/auth/sign-in/email` HTTP routes are switched off (`disabledPaths` in `src/shared/auth/auth.ts`), so `/api/v1/auth/*` is the only way to register or sign in and its validation and rate limits can't be bypassed.
+
+The REST routes and the server actions return the same error shape, `{ error: { code, message, fieldErrors? } }`, with status codes `400`, `401`, `403`, `404`, `409`, `415`, `422`, `429` and `500`. Field-level messages are placed under the right input by the forms. tRPC keeps its own error envelope (`errorFormatter` in `src/shared/trpc/init.ts`) with the same safety rules: no stack traces, a generic message for `500`s, and Zod issues turned into `fieldErrors`.
 
 ### Rendering and streaming
 
@@ -289,13 +291,40 @@ flowchart LR
 | **Cursor pagination** | Stable pages while new posts are added; uses the `createdAt` index. | No "jump to page N". |
 | **Streaming SSR with Suspense** | Fast first paint and good perceived performance without client-side loading spinners for initial data. | More care needed about what is awaited versus streamed. |
 
-## 9. Testing strategy
+## 9. Design patterns
+
+### Repository
+
+**Problem.** Posts, comments and likes are read and written from four entry points: REST route handlers, tRPC procedures, server actions and Server Components. Without a shared layer, each would repeat its own Prisma queries, choose its own fields (and could leak author emails), and could forget the `authorId` filter that stops one user changing another's content. Route handlers would also be hard to unit test, because they would talk to the database directly.
+
+**Solution.** All data access for blog content goes through `src/shared/repositories/` (`post-repository.ts`, `comment-repository.ts`, `like-repository.ts`). Callers ask for intent (`listPosts`, `getPost`, `createPost`, `updatePost`, `deletePost`, …) and get back plain DTOs defined in `src/shared/repositories/types.ts`, which never include author emails. Edits and deletes of posts and comments also filter by `authorId`, as a second guard behind `src/shared/auth/ownership.ts`; likes are keyed by the signed-in user's id.
+
+**What it gives us.**
+
+- One place for each query, so the dashboard, the feed, the post page and the REST API can't drift apart.
+- Unit tests replace the repository module with a mock (for example `src/app/api/v1/posts/__tests__/posts-routes.test.ts`), so handler logic such as `401`/`403`/`404` paths is tested without a database.
+- The same functions are tested against real Postgres in `src/shared/repositories/__tests__/`.
+
+**Exceptions, on purpose.** `src/shared/rate-limit/rate-limit.ts` runs one raw SQL statement (`INSERT … ON CONFLICT DO UPDATE`) because the limiter must be atomic, which a read-then-write through a repository would not be. Better Auth reads and writes its own tables (`user`, `session`, `account`) through its Prisma adapter; wrapping a library's storage in our repository would add nothing.
+
+### Singleton
+
+**Problem.** Each `PrismaClient` opens its own connection pool. In development, Next.js reloads modules on every file change, and a new client per reload quickly exhausts database connections.
+
+**Solution.** `src/shared/db/db.ts` creates the client once and, outside production, stores it on `globalThis` so hot reloads reuse it. Everything imports the same `prisma` instance. In production the module cache already guarantees one client per server instance (one per Vercel function instance).
+
+### Why not something heavier
+
+A dependency-injection container or a generic repository base class would add indirection without solving a problem this app has. Plain modules give the same seams for testing (`jest.mock` on the repository module) with less code.
+
+## 10. Testing strategy
 
 - **Unit and component tests** (Jest, jsdom, Testing Library) mock the database and session. They cover every route, procedure and action for signed-out, not-the-author and rate-limited cases, plus form and context behaviour.
 - **Integration tests** run the repositories, ownership checks and rate-limit SQL against a real Postgres `*_test` database (the runner refuses any database whose name doesn't end in `_test`).
-- All three run in CI on every pull request before an image is built or deployed.
+- **Coverage** is measured by `bun run test:coverage` over all app code (excluding the generated Prisma client and the shadcn UI primitives), and the build fails below 55% statements, 55% branches, 50% functions and 55% lines (`jest.config.mjs`). The repositories count as uncovered there because the integration tests, which exercise them, don't collect coverage.
+- All three run in CI on every pull request before an image is built or deployed; the `unit` job runs the coverage check.
 
-## 10. Future work
+## 11. Future work
 
 - Public (signed-out) read access to posts, with caching at the edge.
 - Rich text or Markdown with sanitised rendering, and image uploads to object storage.

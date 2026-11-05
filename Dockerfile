@@ -37,12 +37,13 @@ COPY . .
 
 # ---- checks ----
 FROM source AS lint
-# Type-aware lint needs Next's generated route types (PageProps, RouteContext),
-# which only exist after `next dev`/`next build` — so generate them first.
-RUN bunx next typegen && bun run lint
+# Type-aware lint needs Next's generated route types (PageProps, RouteContext);
+# the lint script generates them first (`next typegen`).
+RUN bun run lint
 
+# Fails if coverage drops below the thresholds in jest.config.mjs.
 FROM source AS test
-RUN bun run test
+RUN bun run test:coverage
 
 # Needs a live database, so it runs as a container (see docker-compose.ci.yml),
 # not as a build step.

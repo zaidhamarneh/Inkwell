@@ -9,6 +9,10 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  // Sign-up and sign-in go only through /api/v1/auth/*, which validate with
+  // our Zod schemas and apply our rate limits. Disabling these HTTP routes
+  // doesn't affect auth.api.signUpEmail / signInEmail, which those routes call.
+  disabledPaths: ["/sign-up/email", "/sign-in/email"],
   session: {
     // Sliding sessions: a session lives for 7 days, and while it's in use the
     // expiry is pushed back to "now + 7 days" at most once per day. An active

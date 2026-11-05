@@ -24,6 +24,13 @@ describe("loginSchema", () => {
       password: "Enter your password",
     });
   });
+
+  it("rejects an email longer than 254 characters", () => {
+    const email = `${"a".repeat(245)}@example.com`;
+    expect(fieldErrors(loginSchema.safeParse({ email, password: "x" }))).toEqual({
+      email: "Email must be at most 254 characters",
+    });
+  });
 });
 
 describe("registerSchema", () => {
@@ -41,6 +48,20 @@ describe("registerSchema", () => {
   it("trims the name and rejects a blank one", () => {
     expect(fieldErrors(registerSchema.safeParse({ ...valid, name: "   " }))).toEqual({
       name: "Enter your name",
+    });
+  });
+
+  it("allows a name up to 100 characters", () => {
+    expect(registerSchema.safeParse({ ...valid, name: "x".repeat(100) }).success).toBe(true);
+    expect(fieldErrors(registerSchema.safeParse({ ...valid, name: "x".repeat(101) }))).toEqual({
+      name: "Name must be at most 100 characters",
+    });
+  });
+
+  it("rejects an email longer than 254 characters", () => {
+    const email = `${"a".repeat(245)}@example.com`;
+    expect(fieldErrors(registerSchema.safeParse({ ...valid, email }))).toEqual({
+      email: "Email must be at most 254 characters",
     });
   });
 

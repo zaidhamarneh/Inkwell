@@ -4,7 +4,9 @@ A blogging platform: write posts, read a feed, comment and like.
 
 Built with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, tRPC, React Query, Better Auth, Prisma and PostgreSQL, with Bun as the package manager.
 
-**Architecture:** see [docs/SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md) for the system design (components, data flow, data model and design decisions).
+Live demo: LIVE_URL_PLACEHOLDER
+
+**Architecture:** see [docs/SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md) for the system design (components, data flow, data model, design patterns and design decisions).
 
 ## Prerequisites
 
@@ -120,7 +122,8 @@ bun run lint
 
 - `test` runs unit and component tests; no database needed.
 - `test:integration` needs the database from step 2. It creates, migrates and uses a separate `inkwell_test` database, so your dev data isn't touched.
-- `lint` is type-aware and needs Next's generated route types. Run `bun dev` once (or `bunx next typegen`) before the first lint.
+- `lint` is type-aware. It generates Next's route types first (`next typegen`), so it works on a fresh clone.
+- `bun run test:coverage` runs the same tests with a coverage report and fails below the thresholds in `jest.config.mjs`.
 
 ### 8. Build and run the Docker image
 
@@ -189,6 +192,7 @@ It needs these secrets in the GitHub `production` environment: `VERCEL_TOKEN`, `
 - `bun run db:studio` — browse the database in Prisma Studio
 - `bun run db:seed` — load demo data (`prisma/seed.ts`); safe to re-run
 - `bun run test` — unit and React component tests (Jest, mocked, no database needed)
+- `bun run test:coverage` — the same tests with a coverage report; fails below the thresholds in `jest.config.mjs` (CI runs this)
 - `bun run test:integration` — integration tests against a separate `<db>_test` database
 
 ## Auth REST API
@@ -233,12 +237,18 @@ Every error has the same shape:
 | 400 | `INVALID_JSON` | Body isn't valid JSON |
 | 401 | `INVALID_CREDENTIALS` | Wrong email or password (same message for both, so emails can't be probed) |
 | 401 | `UNAUTHORIZED` | The request needs a valid session |
-| 405 | — | Wrong HTTP method (handled by Next.js) |
+| 403 | `FORBIDDEN` | Editing or deleting a post or comment that isn't yours |
+| 404 | `NOT_FOUND` | The post or comment doesn't exist |
+| 405 | — | Wrong HTTP method (handled by Next.js; no JSON body) |
 | 409 | `EMAIL_TAKEN` | Registering an email that already has an account |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | `Content-Type` isn't `application/json` |
 | 422 | `VALIDATION_ERROR` | Schema validation failed; see `fieldErrors` |
 | 429 | `RATE_LIMITED` | Too many attempts; see "Rate limits" below. Includes a `Retry-After` header (seconds) |
 | 500 | `INTERNAL_ERROR` | Anything unexpected; details are logged on the server, never sent to the client |
+
+Server actions return the same `{ code, message, fieldErrors? }` inside their result. tRPC errors use tRPC's own envelope (`error.message`, `error.data.code`, `error.data.fieldErrors`), never with a stack trace.
+
+Text limits: name up to 100 characters, email up to 254, password 8–128. Better Auth's own `/api/auth/sign-up/email` and `/api/auth/sign-in/email` routes are disabled (`src/shared/auth/auth.ts`), so these endpoints are the only way to register or sign in.
 
 ### Example
 
@@ -298,15 +308,15 @@ const trpc = useTRPC();
 const { data } = useSuspenseInfiniteQuery(trpc.posts.list.infiniteQueryOptions(…));
 ```
 
-After anything that changes posts (likes, comments, create/edit/delete), invalidate the cached queries in the browser, e.g. `queryClient.invalidateQueries(trpc.posts.pathFilter())` or the `useInvalidatePosts()` hook.
+After anything that changes posts (likes, comments, create/edit/delete), `PostsContext` invalidates the affected cached queries in the browser (`queryClient.invalidateQueries(trpc.posts.pathFilter())`).
 
 ## Data loading and streaming
 
 Pages render their shell right away and stream data in behind `<Suspense>` skeletons (`src/shared/posts/skeletons.tsx`):
 
 - **Promise + `use()`** for data that isn't in React Query. The server component starts the query without `await` and passes the promise to a client component, which reads it with `use()`:
-  - comments on a post (`posts/[postId]/comment-list.tsx`)
-  - the post being edited (`posts/[postId]/edit/edit-post-form.tsx`)
+  - comments on a post (`src/app/(protected)/posts/[postId]/components/comment-list.tsx`)
+  - the post being edited (`src/app/(protected)/posts/[postId]/edit/components/edit-post-form.tsx`)
 - **Streamed React Query prefetch** for tRPC data (dashboard, feed): the page calls `void prefetchInfiniteQuery(...)` without awaiting, and the client's `useSuspenseInfiniteQuery` suspends until the streamed result arrives. Same effect as `use()`, but the data stays in the React Query cache so "Load more" and post-change refetches keep working.
 - **Awaited on purpose**: the session check in `(protected)/layout.tsx` (nothing renders before it passes) and whether a post exists on its page (decides "not found").
 
@@ -358,7 +368,7 @@ src/shared/auth/__tests__/ownership.test.ts
 bun run test
 ```
 
-**Unit tests** (`*.test.ts`, 144 tests) mock the database, the session and Better Auth, and cover every function and handler, including:
+**Unit tests** (`*.test.ts`) mock the database, the session and Better Auth. They cover every REST route, tRPC procedure and server action, including:
 
 - **Signed out:** every route, tRPC procedure, server action and protected page rejects (401 or redirect), and the proxy blocks server actions on any path.
 - **Not the author:** editing or deleting someone else's post or comment returns 403 (checked before the body is validated); a missing one returns 404.
@@ -369,9 +379,9 @@ bun run test
 bun run test:integration
 ```
 
-**Integration tests** (`*.integration.test.ts`, 24 tests) run the repositories, ownership checks and the rate-limit SQL against a real **test** database: `DATABASE_URL` with `_test` appended (e.g. `inkwell_test`), or `TEST_DATABASE_URL` if set. It's created and migrated automatically and emptied before each test. The run refuses any database whose name doesn't end in `_test`, so your dev data is never touched. They cover pagination, cascade deletes, the `authorId` second guard, idempotent and concurrent likes, and the rate limiter's window reset and atomicity under concurrent requests.
+**Integration tests** (`*.integration.test.ts`) run the repositories, ownership checks and the rate-limit SQL against a real **test** database: `DATABASE_URL` with `_test` appended (e.g. `inkwell_test`), or `TEST_DATABASE_URL` if set. It's created and migrated automatically and emptied before each test. The run refuses any database whose name doesn't end in `_test`, so your dev data is never touched. They cover pagination, cascade deletes, the `authorId` second guard, idempotent and concurrent likes, and the rate limiter's window reset and atomicity under concurrent requests.
 
-**Component tests** (`*.test.tsx`, 39 tests, also run by `bun run test`) render React components in a simulated browser (jsdom + Testing Library) and use them like a user would. Each file starts with `/** @jest-environment jsdom */`.
+**Component tests** (`*.test.tsx`, also run by `bun run test`) render React components in a simulated browser (jsdom + Testing Library) and use them like a user would. Each file starts with `/** @jest-environment jsdom */`.
 
 - **`LikeButton`:** instant feedback, rapid clicks merged into one request after 400 ms, no request when clicks end where they started, one request at a time (a change made meanwhile is sent after), revert + message on a 429, and sending an unsent click when leaving the page.
 - **`LoginForm` / `RegisterForm`:** browser-side validation, server errors placed under the right field ("email taken") or at the form level ("incorrect password"), the password mismatch clearing when *either* password is fixed, and the forms clearing after success.
@@ -380,3 +390,5 @@ bun run test:integration
 - **Delete dialogs (post and comment):** Cancel keeps the item, the dialog stays open while deleting and shows errors, and closes (or navigates to My feed) only on success.
 
 Static, display-only components (navbar, cards, skeletons) and the shadcn UI components aren't tested; they have no logic of their own.
+
+**Coverage.** `bun run test:coverage` measures all app code except the generated Prisma client and the shadcn UI primitives, and fails below 55% statements, 55% branches, 50% functions and 55% lines (`jest.config.mjs`). The CI `unit` job runs it. The repositories show as uncovered in that report because they're tested by the integration tests, which don't collect coverage.

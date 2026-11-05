@@ -45,6 +45,23 @@ const config = {
     "^server-only$": "<rootDir>/__mocks__/empty.js",
   },
   clearMocks: true,
+  // Coverage (`bun run test:coverage`) is measured over all app code, not just
+  // the files the tests import. Excluded: generated Prisma client, shadcn UI
+  // primitives (no logic of their own) and the tests themselves. The
+  // repositories show low here because the integration tests cover them
+  // against a real database, and those don't collect coverage.
+  collectCoverageFrom: [
+    "src/**/*.{ts,tsx}",
+    "!src/generated/**",
+    "!src/shared/ui/**",
+    "!src/**/__tests__/**",
+    "!src/**/*.d.ts",
+  ],
+  coverageReporters: ["text-summary", "lcov"],
+  // Just under the current numbers, so coverage can't quietly drop.
+  coverageThreshold: {
+    global: { statements: 55, branches: 55, functions: 50, lines: 55 },
+  },
   ...(integration && {
     globalSetup: "<rootDir>/jest.integration-setup.mjs",
     // Runs in each test file before any imports: points Prisma at the test db.
