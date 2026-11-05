@@ -17,6 +17,22 @@ Set up the database: copy `.env.example` to `.env`, set `DATABASE_URL` to your P
 bun run db:migrate
 ```
 
+Optionally, load demo data (3 users, 8 posts, comments and likes):
+
+```bash
+bun run db:seed
+```
+
+Sign in as any demo user with password `inkwell-demo-123`:
+
+| User | Email |
+| --- | --- |
+| Ada Lovelace | `ada@example.com` |
+| Grace Hopper | `grace@example.com` |
+| Alan Turing | `alan@example.com` |
+
+Re-running the seed resets only the demo users and their content; other accounts are left alone. These are local test credentials. Don't seed a production database.
+
 Run the development server:
 
 ```bash
@@ -34,6 +50,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser. Edit `src/a
 - `bun run db:migrate` — create and apply a Prisma migration
 - `bun run db:generate` — regenerate the Prisma client (also runs on `bun install`)
 - `bun run db:studio` — browse the database in Prisma Studio
+- `bun run db:seed` — load demo data (`prisma/seed.ts`); safe to re-run
 
 ## Auth REST API
 
