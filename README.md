@@ -43,7 +43,12 @@ JSON endpoints under `/api/v1/auth`, built as Next.js Route Handlers (Node.js ru
 
 - **Sliding expiry.** A session lasts 7 days. While it's in use, its expiry is pushed back to "now + 7 days" (at most once a day), so active users stay signed in. `src/proxy.ts` does this on every page request and sends the refreshed cookie.
 - **Immediate revocation.** Every session check reads the `session` table (no cookie cache), so logging out, revoking a session (e.g. Better Auth's `/api/auth/revoke-other-sessions`) or deleting its row makes that cookie useless on the very next request. Expired sessions are rejected and their cookies cleared.
-- **Protected pages.** Pages in `src/app/(protected)` redirect to `/login` without a valid session: first in `src/proxy.ts` (add new protected paths to `PROTECTED_PREFIXES`), then again in `(protected)/layout.tsx`, which always runs.
+- **Proxy gate.** `src/proxy.ts` checks the session for every request before it reaches the app:
+  - protected pages (`PROTECTED_PAGE_PREFIXES`) redirect to `/login`;
+  - every `/api` route except sign-in/up/out and Better Auth's (`PUBLIC_API_PREFIXES`) gets `401 UNAUTHORIZED`, including tRPC;
+  - every server action (likes, comments) gets `401`, whatever path it's posted to (actions are recognised by their `Next-Action` header).
+- **Second check in each handler.** Pages (`(protected)/layout.tsx`), route handlers, tRPC procedures and server actions still verify the session themselves and enforce ownership (only your post, only your comment), which the proxy can't know. Next.js recommends never relying on the proxy alone. Keep both when adding new endpoints.
+- In the browser, call server actions through `callAction()` (`src/shared/actions/call-action.ts`): a proxy `401` makes the action throw, and `callAction` turns that into a normal error result.
 
 | Method | Path | Body | Success |
 | --- | --- | --- | --- |
@@ -89,3 +94,56 @@ curl -i -X POST http://localhost:3000/api/v1/auth/register \
 ```
 
 Code: route handlers in `src/app/api/v1/auth/*/route.ts`, shared helpers (body parsing, error mapping, response shapes) in `src/shared/api/`.
+
+## Posts REST API
+
+Creating, editing and deleting posts go through JSON endpoints under `/api/v1/posts`. They need a valid session cookie, use the same error format as the auth API, and validate bodies with `postSchema` (`src/shared/schemas/post/post.ts`). Comments and likes are server actions instead (`src/shared/actions/`).
+
+| Method | Path | Body | Success |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/posts` | `{ title, content }` | `201 { data: { post } }` |
+| `PUT` | `/api/v1/posts/:postId` | `{ title, content }` (both required; replaces the post) | `200 { data: { post } }` |
+| `DELETE` | `/api/v1/posts/:postId` | none | `204` (its comments and likes are deleted too) |
+
+`post` is `{ id, title, content, authorId, createdAt, updatedAt }`. Title: 1–150 characters, content: 1–20,000, both trimmed.
+
+Only the author can update or delete a post. For anyone else the API answers `404 NOT_FOUND`, the same as for a post that doesn't exist, so it never reveals whether someone else's post exists.
+
+## Reading posts (tRPC)
+
+Posts are read through tRPC (`/api/trpc`), not REST. The router lives in `src/shared/trpc/routers/` and calls the same repositories as everything else.
+
+| Procedure | Input | Returns |
+| --- | --- | --- |
+| `posts.list` | `{ scope: "all" \| "mine", cursor? }` | `{ items: PostSummary[], nextCursor }`, 20 newest first |
+| `posts.byId` | `{ postId }` | `PostDetail` or `null` |
+
+Both require a signed-in user (`UNAUTHORIZED` otherwise). Dates come through as real `Date`s (superjson).
+
+Pages prefetch on the server and hand the data to client components through React Query:
+
+```tsx
+// Server Component (page.tsx)
+await getQueryClient().prefetchInfiniteQuery(
+  trpc.posts.list.infiniteQueryOptions({ scope: "all" }, { getNextPageParam: (p) => p.nextCursor }),
+);
+return <HydrateClient><PostFeed scope="all" … /></HydrateClient>;
+
+// Client Component
+const trpc = useTRPC();
+const { data } = useSuspenseInfiniteQuery(trpc.posts.list.infiniteQueryOptions(…));
+```
+
+After anything that changes posts (likes, comments, create/edit/delete), invalidate the cached queries in the browser, e.g. `queryClient.invalidateQueries(trpc.posts.pathFilter())` or the `useInvalidatePosts()` hook.
+
+## Data loading and streaming
+
+Pages render their shell right away and stream data in behind `<Suspense>` skeletons (`src/shared/posts/skeletons.tsx`):
+
+- **Promise + `use()`** for data that isn't in React Query. The server component starts the query without `await` and passes the promise to a client component, which reads it with `use()`:
+  - comments on a post (`posts/[postId]/comment-list.tsx`)
+  - the post being edited (`posts/[postId]/edit/edit-post-form.tsx`)
+- **Streamed React Query prefetch** for tRPC data (dashboard, feed): the page calls `void prefetchInfiniteQuery(...)` without awaiting, and the client's `useSuspenseInfiniteQuery` suspends until the streamed result arrives. Same effect as `use()`, but the data stays in the React Query cache so "Load more" and post-change refetches keep working.
+- **Awaited on purpose**: the session check in `(protected)/layout.tsx` (nothing renders before it passes) and whether a post exists on its page (decides "not found").
+
+A failed promise or query shows `(protected)/error.tsx` with a "Try again" button.

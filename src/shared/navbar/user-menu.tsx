@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { apiPost } from "@/shared/api/client";
+import { getInitials } from "@/shared/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import {
   DropdownMenu,
@@ -21,22 +22,17 @@ export type MenuUser = {
   image: string | null;
 };
 
-/** "Ada Lovelace" → "AL", "Haid" → "H", falls back to the email's first letter. */
-export function getInitials(name: string, email: string) {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  const first = (word?: string) => (word ? Array.from(word)[0] : "");
-
-  const initials =
-    words.length > 1
-      ? first(words[0]) + first(words[words.length - 1])
-      : first(words[0]) || first(email);
-
-  return (initials || "?").toUpperCase();
-}
-
 export function UserMenu({ user }: { user: MenuUser }) {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<"idle" | "pending" | "failed">("idle");
+
+  function onOpenChange(next: boolean) {
+    // Don't let an outside click close the menu mid sign-out.
+    if (status === "pending") return;
+    setOpen(next);
+    if (next) setStatus("idle");
+  }
 
   async function signOut(event: Event) {
     // Keep the menu open while the request runs so errors stay visible.
@@ -50,12 +46,15 @@ export function UserMenu({ user }: { user: MenuUser }) {
       return;
     }
 
+    // Signed out: close the card before leaving the page.
+    setStatus("idle");
+    setOpen(false);
     router.replace("/login");
     router.refresh();
   }
 
   return (
-    <DropdownMenu onOpenChange={(open) => open && setStatus("idle")}>
+    <DropdownMenu open={open} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger
         aria-label={`Account menu for ${user.name}`}
         className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"

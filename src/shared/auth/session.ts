@@ -1,6 +1,7 @@
 import "server-only";
 
 import { headers } from "next/headers";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { auth } from "./auth";
@@ -12,12 +13,14 @@ import { auth } from "./auth";
  * Refresh is disabled here because Server Components can't set cookies;
  * src/proxy.ts refreshes the session on each page request instead.
  */
-export async function getServerSession() {
+// Wrapped in React's cache() so the layout and the page share one database
+// lookup per request instead of each doing their own.
+export const getServerSession = cache(async () => {
   return auth.api.getSession({
     headers: await headers(),
     query: { disableRefresh: true },
   });
-}
+});
 
 /** Like getServerSession, but redirects to /login when there's no session. */
 export async function requireSession() {

@@ -32,7 +32,9 @@ async function request<T>(config: AxiosRequestConfig): Promise<ApiResult<T>> {
     const data = response.data === "" ? undefined : response.data?.data;
     return { ok: true, data: data as T };
   } catch (error) {
-    if (!isAxiosError(error)) {
+    // <unknown>: axios types error bodies as `any` by default; treat the
+    // body as unknown so isApiErrorBody() has to prove its shape.
+    if (!isAxiosError<unknown>(error)) {
       return failure(0, "Something went wrong. Please try again.");
     }
     if (error.response) {
@@ -56,6 +58,16 @@ export function apiGet<T>(path: string): Promise<ApiResult<T>> {
 /** POST a JSON body to a path under /api/v1, e.g. apiPost("/auth/login", values). */
 export function apiPost<T>(path: string, body?: unknown): Promise<ApiResult<T>> {
   return request<T>({ method: "POST", url: path, data: body });
+}
+
+/** PUT (replace) a JSON body at a path under /api/v1, e.g. apiPut("/posts/abc", values). */
+export function apiPut<T>(path: string, body: unknown): Promise<ApiResult<T>> {
+  return request<T>({ method: "PUT", url: path, data: body });
+}
+
+/** DELETE a path under /api/v1, e.g. apiDelete("/posts/abc"). */
+export function apiDelete(path: string): Promise<ApiResult<undefined>> {
+  return request<undefined>({ method: "DELETE", url: path });
 }
 
 /**

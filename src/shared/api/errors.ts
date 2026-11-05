@@ -42,8 +42,11 @@ export const Errors = {
     new ApiError(401, "INVALID_CREDENTIALS", "Incorrect email or password."),
   unauthorized: () =>
     new ApiError(401, "UNAUTHORIZED", "You need to be logged in."),
-  rateLimited: () =>
-    new ApiError(429, "RATE_LIMITED", "Too many requests. Try again later."),
+  forbidden: (message = "You can't do that.") =>
+    new ApiError(403, "FORBIDDEN", message),
+  notFound: (message = "Not found.") => new ApiError(404, "NOT_FOUND", message),
+  rateLimited: (message = "Too many requests. Try again later.") =>
+    new ApiError(429, "RATE_LIMITED", message),
   internal: () =>
     new ApiError(500, "INTERNAL_ERROR", "Something went wrong on our end."),
 };

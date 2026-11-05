@@ -3,8 +3,15 @@ import "server-only";
 import { isAPIError } from "better-auth/api";
 import { z } from "zod";
 
+import { auth } from "@/shared/auth/auth";
+
 import { ApiError, Errors } from "./errors";
-import type { ApiErrorBody, ApiSuccessBody, PublicUser } from "./types";
+import type {
+  ApiErrorBody,
+  ApiPost,
+  ApiSuccessBody,
+  PublicUser,
+} from "./types";
 
 // Auth responses must never be cached by browsers or proxies.
 const NO_STORE = { "Cache-Control": "no-store" };
@@ -74,17 +81,22 @@ function fromAuthError(error: unknown): ApiError | null {
   return null;
 }
 
-type Handler = (request: Request) => Promise<Response>;
+type Handler<TContext> = (
+  request: Request,
+  context: TContext,
+) => Promise<Response>;
 
 /**
  * Wraps a route handler so every failure becomes a consistent JSON error.
  * Unexpected errors are logged and returned as a generic 500, so internal
  * details (stack traces, SQL, connection strings) never reach the client.
  */
-export function withErrorHandling(handler: Handler): Handler {
-  return async (request) => {
+export function withErrorHandling<TContext = unknown>(
+  handler: Handler<TContext>,
+): Handler<TContext> {
+  return async (request, context) => {
     try {
-      return await handler(request);
+      return await handler(request, context);
     } catch (error) {
       if (error instanceof ApiError) return errorResponse(error);
 
@@ -97,6 +109,32 @@ export function withErrorHandling(handler: Handler): Handler {
       );
       return errorResponse(Errors.internal());
     }
+  };
+}
+
+/**
+ * Returns the signed-in user for an API request, or throws 401.
+ * Reads the session from the database every time (no cookie cache), so a
+ * logged-out or revoked session is rejected immediately.
+ */
+export async function requireApiSession(request: Request) {
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session) throw Errors.unauthorized();
+  return session;
+}
+
+export function toApiPost(post: {
+  id: string;
+  title: string;
+  content: string;
+  authorId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}): ApiPost {
+  return {
+    ...post,
+    createdAt: post.createdAt.toISOString(),
+    updatedAt: post.updatedAt.toISOString(),
   };
 }
 

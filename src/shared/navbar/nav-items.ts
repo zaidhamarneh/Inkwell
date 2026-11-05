@@ -7,4 +7,5 @@ export type NavItem = {
 
 export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/feed", label: "My feed" },
 ];

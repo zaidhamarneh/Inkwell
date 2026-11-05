@@ -51,7 +51,7 @@ export function RegisterForm() {
       return;
     }
 
-    // The API signs the new user in (sets the session cookie) on success.
+    form.reset();
     router.push("/dashboard");
     router.refresh();
   }

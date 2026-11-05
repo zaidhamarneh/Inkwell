@@ -35,6 +35,7 @@ export function LoginForm() {
       return;
     }
 
+    form.reset();
     router.push("/dashboard");
     router.refresh();
   }

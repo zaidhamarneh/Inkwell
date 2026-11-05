@@ -7,6 +7,8 @@ export type ApiErrorCode =
   | "EMAIL_TAKEN"
   | "INVALID_CREDENTIALS"
   | "UNAUTHORIZED"
+  | "FORBIDDEN"
+  | "NOT_FOUND"
   | "RATE_LIMITED"
   | "INTERNAL_ERROR";
 
@@ -31,3 +33,14 @@ export type PublicUser = {
 };
 
 export type AuthUserResponse = ApiSuccessBody<{ user: PublicUser }>;
+
+export type ApiPost = {
+  id: string;
+  title: string;
+  content: string;
+  authorId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PostResponse = ApiSuccessBody<{ post: ApiPost }>;

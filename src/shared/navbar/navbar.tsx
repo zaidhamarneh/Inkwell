@@ -1,6 +1,8 @@
+import { PenLineIcon } from "lucide-react";
 import Link from "next/link";
 
 import { ThemeToggle } from "@/shared/theme/theme-toggle";
+import { Button } from "@/shared/ui/button";
 
 import { NavLinks } from "./nav-links";
 import { UserMenu, type MenuUser } from "./user-menu";
@@ -23,6 +25,12 @@ export function Navbar({ user }: { user: MenuUser }) {
         <NavLinks className="order-last -mx-1 w-full overflow-x-auto sm:order-none sm:mx-0 sm:w-auto" />
 
         <div className="ml-auto flex items-center gap-2">
+          <Button asChild>
+            <Link href="/posts/new">
+              <PenLineIcon aria-hidden data-icon="inline-start" />
+              Write
+            </Link>
+          </Button>
           <ThemeToggle />
           <UserMenu user={user} />
         </div>
