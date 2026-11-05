@@ -28,18 +28,18 @@ export function PostCardSkeleton() {
 
 export function PostFeedSkeleton() {
   return (
-    <div className="grid gap-4" role="status" aria-label="Loading posts">
+    <output className="grid gap-4" aria-label="Loading posts">
       <PostCardSkeleton />
       <PostCardSkeleton />
       <PostCardSkeleton />
-    </div>
+    </output>
   );
 }
 
 /** A post page while the post loads: title, byline, body, actions, comments. */
 export function PostPageSkeleton() {
   return (
-    <div className="grid gap-6" role="status" aria-label="Loading post">
+    <output className="grid gap-6" aria-label="Loading post">
       <div className="grid gap-4" aria-hidden>
         <Skeleton className="h-9 w-3/4" />
         <div className="flex items-center gap-2">
@@ -57,13 +57,13 @@ export function PostPageSkeleton() {
         <Skeleton className="h-6 w-32" />
         <Skeleton className="h-20 w-full" />
       </div>
-    </div>
+    </output>
   );
 }
 
 export function CommentListSkeleton() {
   return (
-    <div className="grid gap-5" role="status" aria-label="Loading comments">
+    <output className="grid gap-5" aria-label="Loading comments">
       {[0, 1].map((i) => (
         <div key={i} className="grid gap-2" aria-hidden>
           <div className="flex items-center gap-2">
@@ -73,13 +73,13 @@ export function CommentListSkeleton() {
           <Skeleton className="ml-8 h-4 w-2/3" />
         </div>
       ))}
-    </div>
+    </output>
   );
 }
 
 export function PostFormSkeleton() {
   return (
-    <div className="grid gap-5" role="status" aria-label="Loading post">
+    <output className="grid gap-5" aria-label="Loading post">
       <div className="grid gap-2" aria-hidden>
         <Skeleton className="h-4 w-12" />
         <Skeleton className="h-8 w-full" />
@@ -92,6 +92,6 @@ export function PostFormSkeleton() {
         <Skeleton className="h-8 w-20" />
         <Skeleton className="h-8 w-28" />
       </div>
-    </div>
+    </output>
   );
 }

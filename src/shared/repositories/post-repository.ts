@@ -96,11 +96,23 @@ export async function getPost(
   return row ? toDetail(row, viewerId) : null;
 }
 
-/** The post's editable fields, only if `userId` wrote it. */
-export async function getOwnPost(postId: string, userId: string) {
-  return prisma.post.findFirst({
-    where: { id: postId, authorId: userId },
-    select: { id: true, title: true, content: true },
+/** Who wrote the post, or null if it doesn't exist. Used by ownership checks. */
+export async function getPostAuthorId(postId: string) {
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { authorId: true },
+  });
+  return post?.authorId ?? null;
+}
+
+/**
+ * The post's editable fields plus its author, or null if it doesn't exist.
+ * The caller decides (via ownership.ts) whether the user may edit it.
+ */
+export async function getPostForEdit(postId: string) {
+  return prisma.post.findUnique({
+    where: { id: postId },
+    select: { id: true, title: true, content: true, authorId: true },
   });
 }
 
@@ -120,7 +132,11 @@ export async function createPost(authorId: string, input: PostInput) {
   });
 }
 
-/** Replaces title and content. Returns null if the post doesn't exist or isn't the author's. */
+/**
+ * Replaces title and content. Call assertPostAuthor() first; the authorId
+ * filter here is a second guard, so even a missed check can't change
+ * someone else's post. Returns null if nothing matched.
+ */
 export async function updatePost(
   postId: string,
   authorId: string,
@@ -138,7 +154,10 @@ export async function updatePost(
   }
 }
 
-/** Deletes the post (and its comments and likes). False if missing or not the author's. */
+/**
+ * Deletes the post (and its comments and likes). Call assertPostAuthor()
+ * first; the authorId filter is a second guard. False if nothing matched.
+ */
 export async function deletePost(postId: string, authorId: string) {
   const { count } = await prisma.post.deleteMany({
     where: { id: postId, authorId },

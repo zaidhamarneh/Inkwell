@@ -6,26 +6,31 @@ import { use } from "react";
 import { apiPut } from "@/shared/api/client";
 import type { PostResponse } from "@/shared/api/types";
 import { PostForm } from "@/shared/posts/post-form";
-import { PostNotFound } from "@/shared/posts/post-not-found";
+import { NotYourPost, PostNotFound } from "@/shared/posts/post-not-found";
 import { useInvalidatePosts } from "@/shared/posts/use-invalidate-posts";
 import type { PostInput } from "@/shared/schemas/post/post";
 
+/** What the edit page may show, decided on the server by the ownership check. */
+export type EditPostState =
+  | { status: "owner"; post: PostInput }
+  | { status: "not_found" }
+  | { status: "forbidden" };
+
 type EditPostFormProps = {
   postId: string;
-  /**
-   * Started (not awaited) by the page on the server. Resolves to the post's
-   * title and content, or null if it doesn't exist or isn't the user's.
-   */
-  postPromise: Promise<(PostInput & { id: string }) | null>;
+  /** Started (not awaited) by the page on the server; resolved here with use(). */
+  statePromise: Promise<EditPostState>;
 };
 
-export function EditPostForm({ postId, postPromise }: EditPostFormProps) {
+export function EditPostForm({ postId, statePromise }: EditPostFormProps) {
   const router = useRouter();
   const invalidatePosts = useInvalidatePosts();
-  const post = use(postPromise);
+  const state = use(statePromise);
   const postHref = `/posts/${postId}`;
 
-  if (!post) return <PostNotFound />;
+  if (state.status === "not_found") return <PostNotFound />;
+  if (state.status === "forbidden") return <NotYourPost postId={postId} />;
+  const { post } = state;
 
   return (
     <PostForm

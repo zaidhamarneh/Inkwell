@@ -31,6 +31,7 @@ export type CommentItem = {
   content: string;
   author: PostAuthor;
   createdAt: Date;
+  updatedAt: Date;
   isMine: boolean;
 };
 

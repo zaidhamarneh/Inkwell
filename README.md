@@ -30,7 +30,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser. Edit `src/a
 - `bun dev` — start the dev server (Turbopack)
 - `bun run build` — production build
 - `bun start` — serve the production build
-- `bun run lint` — run ESLint
+- `bun run lint` — run Oxlint (`.oxlintrc.json`): type-aware, fails on any warning, and `any` is not allowed (explicit or inferred)
 - `bun run db:migrate` — create and apply a Prisma migration
 - `bun run db:generate` — regenerate the Prisma client (also runs on `bun install`)
 - `bun run db:studio` — browse the database in Prisma Studio
@@ -107,7 +107,15 @@ Creating, editing and deleting posts go through JSON endpoints under `/api/v1/po
 
 `post` is `{ id, title, content, authorId, createdAt, updatedAt }`. Title: 1–150 characters, content: 1–20,000, both trimmed.
 
-Only the author can update or delete a post. For anyone else the API answers `404 NOT_FOUND`, the same as for a post that doesn't exist, so it never reveals whether someone else's post exists.
+### Ownership
+
+Only the author can edit or delete a post or a comment. Every edit/delete path checks this through `src/shared/auth/ownership.ts` before writing:
+
+- post `PUT`/`DELETE` → `403 FORBIDDEN` if it isn't yours, `404 NOT_FOUND` if it doesn't exist (ownership is checked before the body is validated);
+- comment `editComment`/`deleteComment` server actions → the same `403`/`404` errors;
+- the edit page shows "You can't edit this post" and never sends someone else's post content to the browser.
+
+The repository writes also filter by `authorId`, so even a missed check can't change someone else's content. The Edit/Delete buttons only appear for the author, but that's a convenience, not the protection.
 
 ## Reading posts (tRPC)
 

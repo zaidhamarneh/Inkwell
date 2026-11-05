@@ -3,9 +3,11 @@
 import { refresh } from "next/cache";
 
 import { Errors } from "@/shared/api/errors";
+import { assertCommentAuthor } from "@/shared/auth/ownership";
 import {
   createComment,
   deleteComment as deleteCommentRow,
+  updateComment,
 } from "@/shared/repositories/comment-repository";
 import type { CommentItem } from "@/shared/repositories/types";
 import { commentSchema } from "@/shared/schemas/comment/comment";
@@ -30,16 +32,37 @@ export async function addComment(
   });
 }
 
+/** Replaces a comment's text. Only its author may (403 otherwise). */
+export async function editComment(
+  commentId: string,
+  input: { content: string },
+): Promise<ActionResult<{ comment: CommentItem }>> {
+  return runAction("editComment", async () => {
+    const user = await requireActionUser();
+    const id = parseInput(idSchema, commentId);
+    await assertCommentAuthor(id, user.id);
+    const { content } = parseInput(commentSchema, input);
+
+    const comment = await updateComment(id, user.id, content);
+    // Deleted between the check and the update.
+    if (!comment) throw Errors.notFound("Comment not found.");
+
+    refresh();
+    return { comment };
+  });
+}
+
+/** Deletes a comment. Only its author may (403 otherwise). */
 export async function deleteComment(
   commentId: string,
 ): Promise<ActionResult<null>> {
   return runAction("deleteComment", async () => {
     const user = await requireActionUser();
     const id = parseInput(idSchema, commentId);
+    await assertCommentAuthor(id, user.id);
 
-    // Only deletes the user's own comment; anything else looks like "not found".
-    const postId = await deleteCommentRow(id, user.id);
-    if (!postId) throw Errors.notFound("Comment not found.");
+    const deleted = await deleteCommentRow(id, user.id);
+    if (!deleted) throw Errors.notFound("Comment not found.");
 
     refresh();
     return null;

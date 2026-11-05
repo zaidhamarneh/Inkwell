@@ -9,6 +9,7 @@ const commentSelect = {
   id: true,
   content: true,
   createdAt: true,
+  updatedAt: true,
   authorId: true,
   author: { select: { id: true, name: true, image: true } },
 } satisfies Prisma.CommentSelect;
@@ -21,8 +22,17 @@ function toItem(row: CommentRow, viewerId: string): CommentItem {
     content: row.content,
     author: row.author,
     createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
     isMine: row.authorId === viewerId,
   };
+}
+
+/** Who wrote the comment and which post it's on, or null if it doesn't exist. */
+export async function getCommentOwnership(commentId: string) {
+  return prisma.comment.findUnique({
+    where: { id: commentId },
+    select: { authorId: true, postId: true },
+  });
 }
 
 /** Comments on a post, oldest first. */
@@ -63,16 +73,34 @@ export async function createComment(
 }
 
 /**
- * Deletes a comment if `authorId` wrote it. Returns the post id it was on
- * (to refresh that page), or null if it doesn't exist or isn't theirs.
+ * Replaces a comment's text. Call assertCommentAuthor() first; the authorId
+ * filter is a second guard. Returns null if nothing matched.
+ */
+export async function updateComment(
+  commentId: string,
+  authorId: string,
+  content: string,
+): Promise<CommentItem | null> {
+  const { count } = await prisma.comment.updateMany({
+    where: { id: commentId, authorId },
+    data: { content },
+  });
+  if (count === 0) return null;
+
+  const row = await prisma.comment.findUnique({
+    where: { id: commentId },
+    select: commentSelect,
+  });
+  return row ? toItem(row, authorId) : null;
+}
+
+/**
+ * Deletes a comment. Call assertCommentAuthor() first; the authorId filter
+ * is a second guard. False if nothing matched.
  */
 export async function deleteComment(commentId: string, authorId: string) {
-  const comment = await prisma.comment.findFirst({
+  const { count } = await prisma.comment.deleteMany({
     where: { id: commentId, authorId },
-    select: { postId: true },
   });
-  if (!comment) return null;
-
-  await prisma.comment.deleteMany({ where: { id: commentId, authorId } });
-  return comment.postId;
+  return count > 0;
 }
