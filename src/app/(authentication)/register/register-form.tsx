@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
-import { signUp } from "@/shared/auth/auth-client";
+import { apiPost, applyApiError } from "@/shared/api/client";
+import type { AuthUserResponse } from "@/shared/api/types";
 import { FormInput } from "@/shared/form-helper/form-input";
 import { FormInputPassword } from "@/shared/form-helper/form-input-password";
 import { registerSchema, type RegisterInput } from "@/shared/schemas/auth/auth";
@@ -34,27 +35,23 @@ export function RegisterForm() {
   const rootError = form.formState.errors.root?.message;
   const isSubmitting = form.formState.isSubmitting;
 
-  async function onSubmit({ name, email, password }: RegisterInput) {
-    // confirmPassword is only checked in the form; Better Auth doesn't take it.
-    const { error } = await signUp.email({ name, email, password });
+  async function onSubmit(values: RegisterInput) {
+    const result = await apiPost<AuthUserResponse["data"]>(
+      "/auth/register",
+      values,
+    );
 
-    if (error) {
-      if (error.code?.startsWith("USER_ALREADY_EXISTS")) {
-        form.setError(
-          "email",
-          { message: "An account with this email already exists." },
-          { shouldFocus: true },
-        );
-        return;
-      }
-
-      form.setError("root", {
-        message: error.message ?? "Something went wrong. Please try again.",
-      });
+    if (!result.ok) {
+      applyApiError(result.error, form.setError, [
+        "name",
+        "email",
+        "password",
+        "confirmPassword",
+      ]);
       return;
     }
 
-    // Better Auth signs the new user in automatically after sign-up.
+    // The API signs the new user in (sets the session cookie) on success.
     router.push("/dashboard");
     router.refresh();
   }

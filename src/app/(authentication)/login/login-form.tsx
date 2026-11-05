@@ -4,7 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
-import { signIn } from "@/shared/auth/auth-client";
+import { apiPost, applyApiError } from "@/shared/api/client";
+import type { AuthUserResponse } from "@/shared/api/types";
 import { FormInput } from "@/shared/form-helper/form-input";
 import { FormInputPassword } from "@/shared/form-helper/form-input-password";
 import { loginSchema, type LoginInput } from "@/shared/schemas/auth/auth";
@@ -23,15 +24,13 @@ export function LoginForm() {
   const isSubmitting = form.formState.isSubmitting;
 
   async function onSubmit(values: LoginInput) {
-    const { error } = await signIn.email(values);
+    const result = await apiPost<AuthUserResponse["data"]>(
+      "/auth/login",
+      values,
+    );
 
-    if (error) {
-      form.setError("root", {
-        message:
-          error.status === 401
-            ? "Incorrect email or password."
-            : (error.message ?? "Something went wrong. Please try again."),
-      });
+    if (!result.ok) {
+      applyApiError(result.error, form.setError, ["email", "password"]);
       form.setValue("password", "");
       return;
     }

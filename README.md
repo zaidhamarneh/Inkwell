@@ -34,3 +34,55 @@ Open [http://localhost:3000](http://localhost:3000) in your browser. Edit `src/a
 - `bun run db:migrate` — create and apply a Prisma migration
 - `bun run db:generate` — regenerate the Prisma client (also runs on `bun install`)
 - `bun run db:studio` — browse the database in Prisma Studio
+
+## Auth REST API
+
+JSON endpoints under `/api/v1/auth`, built as Next.js Route Handlers (Node.js runtime) on top of Better Auth and Prisma. Request bodies are validated with the same Zod schemas the forms use (`src/shared/schemas/auth/auth.ts`). Sessions are stored in PostgreSQL and sent as an `HttpOnly`, `SameSite=Lax` cookie (`Secure` over HTTPS).
+
+| Method | Path | Body | Success |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/auth/register` | `{ name, email, password, confirmPassword }` | `201 { data: { user } }` + session cookie |
+| `POST` | `/api/v1/auth/login` | `{ email, password }` | `200 { data: { user } }` + session cookie |
+| `POST` | `/api/v1/auth/logout` | none | `204`, cookies cleared (also when not signed in) |
+| `GET` | `/api/v1/auth/me` | none | `200 { data: { user, session: { expiresAt } } }` |
+
+`user` is `{ id, name, email, emailVerified, image, createdAt }`. Password hashes and session tokens are never returned in the body.
+
+### Errors
+
+Every error has the same shape:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Some fields are invalid.",
+    "fieldErrors": { "confirmPassword": ["Passwords do not match"] }
+  }
+}
+```
+
+| Status | `code` | When |
+| --- | --- | --- |
+| 400 | `INVALID_JSON` | Body isn't valid JSON |
+| 401 | `INVALID_CREDENTIALS` | Wrong email or password (same message for both, so emails can't be probed) |
+| 401 | `UNAUTHORIZED` | `/me` without a valid session |
+| 405 | — | Wrong HTTP method (handled by Next.js) |
+| 409 | `EMAIL_TAKEN` | Registering an email that already has an account |
+| 415 | `UNSUPPORTED_MEDIA_TYPE` | `Content-Type` isn't `application/json` |
+| 422 | `VALIDATION_ERROR` | Schema validation failed; see `fieldErrors` |
+| 429 | `RATE_LIMITED` | Reserved. Rate limiting isn't enforced on these endpoints yet |
+| 500 | `INTERNAL_ERROR` | Anything unexpected; details are logged on the server, never sent to the client |
+
+### Example
+
+```bash
+curl -i -X POST http://localhost:3000/api/v1/auth/register \
+  -H "Content-Type: application/json" -H "Origin: http://localhost:3000" \
+  -c cookies.txt \
+  -d '{"name":"Ada","email":"ada@example.com","password":"longer123","confirmPassword":"longer123"}'
+
+curl -i http://localhost:3000/api/v1/auth/me -b cookies.txt
+```
+
+Code: route handlers in `src/app/api/v1/auth/*/route.ts`, shared helpers (body parsing, error mapping, response shapes) in `src/shared/api/`.
