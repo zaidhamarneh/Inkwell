@@ -21,5 +21,13 @@
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "warn",
     "react/react-in-jsx-scope": "off"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["**/__tests__/**"],
+      "rules": {
+        "typescript/unbound-method": "off"
+      }
+    }
+  ]
 }

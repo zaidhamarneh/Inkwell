@@ -51,6 +51,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser. Edit `src/a
 - `bun run db:generate` — regenerate the Prisma client (also runs on `bun install`)
 - `bun run db:studio` — browse the database in Prisma Studio
 - `bun run db:seed` — load demo data (`prisma/seed.ts`); safe to re-run
+- `bun run test` — unit tests (Jest, mocked, no database needed)
+- `bun run test:integration` — integration tests against a separate `<db>_test` database
 
 ## Auth REST API
 
@@ -205,3 +207,31 @@ Stored in Postgres (`rate_limit` table, fixed windows), so they hold across rest
 Why the auth routes need their own: `/api/v1/auth/*` call Better Auth server-side (`auth.api.*`), which skips Better Auth's own HTTP rate limiter (that one only covers `/api/auth/*`). Limits live in `src/shared/rate-limit/request-limits.ts`.
 
 The per-IP limits read `X-Forwarded-For` / `X-Real-IP`, which are only trustworthy behind a proxy or CDN that sets them (e.g. Vercel). Without one, a client can fake its IP, but the per-account login limit still applies.
+
+## Testing
+
+Tests use **Jest** (`jest.config.mjs`, via `next/jest`) and live **next to the code they test**, in `__tests__` folders. Next.js ignores `_`-prefixed folders, so they never become routes:
+
+```
+src/shared/auth/ownership.ts
+src/shared/auth/__tests__/ownership.test.ts
+```
+
+```bash
+bun run test
+```
+
+**Unit tests** (`*.test.ts`, 144 tests) mock the database, the session and Better Auth, and cover every function and handler, including:
+
+- **Signed out:** every route, tRPC procedure, server action and protected page rejects (401 or redirect), and the proxy blocks server actions on any path.
+- **Not the author:** editing or deleting someone else's post or comment returns 403 (checked before the body is validated); a missing one returns 404.
+- **Rate limits:** login per IP and per account, registration per IP, and likes per user return 429 with `Retry-After`, checked before any work is done.
+- Validation messages, error formatting (no internal details leak), the API client and `applyApiError`.
+
+```bash
+bun run test:integration
+```
+
+**Integration tests** (`*.integration.test.ts`, 24 tests) run the repositories, ownership checks and the rate-limit SQL against a real **test** database: `DATABASE_URL` with `_test` appended (e.g. `inkwell_test`), or `TEST_DATABASE_URL` if set. It's created and migrated automatically and emptied before each test. The run refuses any database whose name doesn't end in `_test`, so your dev data is never touched. They cover pagination, cascade deletes, the `authorId` second guard, idempotent and concurrent likes, and the rate limiter's window reset and atomicity under concurrent requests.
+
+Not covered yet: React components and hooks (forms, like button, contexts). Those need a browser-like test environment (jsdom + Testing Library).
