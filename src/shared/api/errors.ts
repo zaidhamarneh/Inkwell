@@ -9,6 +9,8 @@ export class ApiError extends Error {
     readonly code: ApiErrorCode,
     message: string,
     readonly fieldErrors?: Record<string, string[]>,
+    /** Sent as a Retry-After header (429 responses). */
+    readonly retryAfterSeconds?: number,
   ) {
     super(message);
     this.name = "ApiError";
@@ -45,8 +47,10 @@ export const Errors = {
   forbidden: (message = "You can't do that.") =>
     new ApiError(403, "FORBIDDEN", message),
   notFound: (message = "Not found.") => new ApiError(404, "NOT_FOUND", message),
-  rateLimited: (message = "Too many requests. Try again later.") =>
-    new ApiError(429, "RATE_LIMITED", message),
+  rateLimited: (
+    message = "Too many requests. Try again later.",
+    retryAfterSeconds?: number,
+  ) => new ApiError(429, "RATE_LIMITED", message, undefined, retryAfterSeconds),
   internal: () =>
     new ApiError(500, "INTERNAL_ERROR", "Something went wrong on our end."),
 };

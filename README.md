@@ -81,7 +81,7 @@ Every error has the same shape:
 | 409 | `EMAIL_TAKEN` | Registering an email that already has an account |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | `Content-Type` isn't `application/json` |
 | 422 | `VALIDATION_ERROR` | Schema validation failed; see `fieldErrors` |
-| 429 | `RATE_LIMITED` | Reserved. Rate limiting isn't enforced on these endpoints yet |
+| 429 | `RATE_LIMITED` | Too many attempts; see "Rate limits" below. Includes a `Retry-After` header (seconds) |
 | 500 | `INTERNAL_ERROR` | Anything unexpected; details are logged on the server, never sent to the client |
 
 ### Example
@@ -173,3 +173,18 @@ Client-side app state lives in two React contexts in `src/shared/state/`.
 - After each change, the context refreshes the affected post data, so the dashboard, feed and post page stay in sync. Fetched data is cached by React Query (through tRPC) underneath.
 
 The server still enforces sign-in, ownership and rate limits on every request; the contexts only organise client state.
+
+## Rate limits
+
+Stored in Postgres (`rate_limit` table, fixed windows), so they hold across restarts and server instances. Emails are hashed before being used as keys.
+
+| What | Limit | Key |
+| --- | --- | --- |
+| Login | 10 attempts / 15 min | per account (email), from any IP: the brute-force guard |
+| Login | 30 attempts / 15 min | per IP, across all accounts |
+| Register | 5 accounts / hour | per IP |
+| Like / unlike | 20 changes / min | per user |
+
+Why the auth routes need their own: `/api/v1/auth/*` call Better Auth server-side (`auth.api.*`), which skips Better Auth's own HTTP rate limiter (that one only covers `/api/auth/*`). Limits live in `src/shared/rate-limit/request-limits.ts`.
+
+The per-IP limits read `X-Forwarded-For` / `X-Real-IP`, which are only trustworthy behind a proxy or CDN that sets them (e.g. Vercel). Without one, a client can fake its IP, but the per-account login limit still applies.

@@ -35,7 +35,15 @@ function errorResponse(error: ApiError): Response {
       ...(error.fieldErrors && { fieldErrors: error.fieldErrors }),
     },
   };
-  return Response.json(body, { status: error.status, headers: NO_STORE });
+  return Response.json(body, {
+    status: error.status,
+    headers: {
+      ...NO_STORE,
+      ...(error.retryAfterSeconds !== undefined && {
+        "Retry-After": String(error.retryAfterSeconds),
+      }),
+    },
+  });
 }
 
 /** Reads a JSON body and validates it, throwing an ApiError on failure. */
