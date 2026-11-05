@@ -7,9 +7,14 @@
 #   deployer           migrate + deploy to Vercel      docker run --rm -e VERCEL_TOKEN ... inkwell-deployer
 #
 # Secrets are never baked in: they are passed with `docker run -e` at runtime.
+#
+# Node version: keep the node:<major> images below in step with "engines.node"
+# in package.json. Vercel reads engines.node (it overrides the Node.js Version
+# in Project Settings), so the deployer builds on the same major that Vercel
+# runs the functions on.
 
 # ---- base: Node (Next, Prisma CLI, npx) + Bun (package manager, scripts) ----
-FROM node:22-bookworm-slim AS base
+FROM node:24-bookworm-slim AS base
 COPY --from=oven/bun:1.3.13 /usr/local/bin/bun /usr/local/bin/bun
 RUN ln -s /usr/local/bin/bun /usr/local/bin/bunx
 WORKDIR /app
@@ -52,7 +57,7 @@ RUN BETTER_AUTH_SECRET=build-time-placeholder-not-a-real-secret \
 
 # ---- runner: minimal self-hostable app image (no Bun, no dev deps) ----
 # Runtime env: DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL.
-FROM node:22-bookworm-slim AS runner
+FROM node:24-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production \
     PORT=3000 \
