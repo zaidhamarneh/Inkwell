@@ -9,6 +9,17 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  session: {
+    // Sliding sessions: a session lives for 7 days, and while it's in use the
+    // expiry is pushed back to "now + 7 days" at most once per day. An active
+    // user stays signed in; one who's gone 7 days has to log in again.
+    expiresIn: 60 * 60 * 24 * 7,
+    updateAge: 60 * 60 * 24,
+    // No cookieCache on purpose: every session check reads the session row,
+    // so logging out or revoking a session (deleting its row) takes effect on
+    // the very next request instead of after a cache window.
+    cookieCache: { enabled: false },
+  },
   // nextCookies must stay last: it lets Server Actions set auth cookies.
   plugins: [nextCookies()],
 });

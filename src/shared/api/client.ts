@@ -48,7 +48,7 @@ async function request<T>(config: AxiosRequestConfig): Promise<ApiResult<T>> {
   }
 }
 
-/** GET a path under /api/v1, e.g. apiGet("/auth/me"). */
+/** GET a path under /api/v1, e.g. apiGet("/posts"). */
 export function apiGet<T>(path: string): Promise<ApiResult<T>> {
   return request<T>({ method: "GET", url: path });
 }
