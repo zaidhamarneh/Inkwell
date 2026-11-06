@@ -83,7 +83,24 @@ The app exposes four kinds of server entry points. Each one is chosen for what i
 | **Server actions** | Like/unlike, add/edit/delete comment | Small mutations triggered from inside a post page. No endpoint boilerplate, and `refresh()` re-renders the server data right after. |
 | **Server Components** | Rendering pages | Read data on the server close to the database and stream HTML. No API round trip for the first render. |
 
-### 3.2 Defense in depth for auth
+### 3.2 Why post reads use tRPC instead of REST
+
+Reading posts (the paginated list and a single post) is served by tRPC rather than by `GET` endpoints on the REST API. This is a deliberate decision, not an omission.
+
+**Background.** tRPC was raised by the hiring team during the recruitment process. It was therefore adopted here on purpose, as an opportunity to learn the technology and evaluate it on a real feature rather than in isolation. Reads were chosen as the place to apply it because they benefit most from what tRPC offers, while writes remain on REST, where explicit HTTP status codes and a documented JSON contract matter most.
+
+**What tRPC brings to the read path.**
+
+- **End-to-end type safety.** The return types of `posts.list` and `posts.byId` (`PostSummary`, `PostDetail`) flow directly to the client, with no hand-written API client and no duplicated response types.
+- **React Query integration.** Caching, cursor-based infinite scrolling ("Load more") and server-side prefetch with hydration come from the tRPC/React Query bindings, so the first page of posts arrives with the HTML.
+- **Precise cache invalidation.** After any change to posts, `PostsContext` invalidates exactly the affected queries (`trpc.posts.pathFilter()`), keeping the dashboard, feed and post page consistent.
+- **Faithful serialization.** `superjson` delivers `Date` values as `Date` objects rather than strings.
+
+**Why this does not weaken the API.** The tRPC procedures (`src/shared/trpc/routers/posts.ts`) apply the same safeguards as the REST handlers. They are behind the proxy gate and `protectedProcedure`'s own session check. Their inputs are validated with Zod. They call the same repository functions (`listPosts`, `getPost`), so they return the same email-free DTOs. Their errors pass through `errorFormatter`, which never exposes stack traces.
+
+**Trade-off.** A client outside this codebase cannot read posts through a resource-oriented REST URL. tRPC queries are plain HTTP `GET` requests (`/api/trpc/posts.list?input=…`), but their input and output use tRPC's superjson envelope rather than a conventional REST shape. If REST reads become necessary, adding `GET /api/v1/posts` and `GET /api/v1/posts/:postId` is a small change. They would call the same repository functions inside the existing `withErrorHandling` and `requireApiSession` helpers, so no business logic would be duplicated.
+
+### 3.3 Defense in depth for auth
 
 Every request is checked **twice**:
 
@@ -93,7 +110,7 @@ Every request is checked **twice**:
 
 If the proxy's session check fails unexpectedly (for example the database is unreachable), it lets the request through, and the handler, which also checks, fails closed.
 
-### 3.3 Client state
+### 3.4 Client state
 
 - **`AuthContext`** wraps sign in, sign up and sign out. After each one it clears the React Query cache, so nothing from the previous user stays in memory, then navigates.
 - **`CurrentUserProvider`** receives the user from the protected layout, which verified it on the server. The browser never decides who is signed in; the session itself is an `HttpOnly` cookie that JavaScript can't read.
@@ -284,7 +301,7 @@ flowchart LR
 | **Monolith (Next.js full stack)** instead of separate frontend and API services | One codebase, one deploy, shared types and schemas, no network hop between UI and API. Right-sized for a blog. | Scaling is per app, not per service. The layered `shared/` modules make it straightforward to split later if needed. |
 | **PostgreSQL + Prisma** | Relational data (users → posts → comments/likes) with foreign keys, cascades and unique constraints. Prisma gives typed queries and versioned migrations. | A relational DB to operate instead of a serverless KV store. |
 | **Better Auth with database sessions** | Mature email/password auth, password hashing, Prisma adapter. Database sessions allow instant revocation. | One session lookup per request (indexed, cheap). |
-| **REST for writes, tRPC for reads, server actions for small mutations** | Each where it fits: a stable HTTP contract for auth and post writes, typed cached queries for reads, minimal boilerplate for likes and comments. | Three mechanisms to learn. Mitigated by all of them sharing the same auth, validation and repository code. |
+| **REST for writes, tRPC for reads, server actions for small mutations** | Each where it fits: a stable HTTP contract for auth and post writes, typed cached queries for reads, minimal boilerplate for likes and comments. | Three mechanisms to learn. Mitigated by all of them sharing the same auth, validation and repository code. See 3.2 for why reads use tRPC. |
 | **Proxy + handler double check** | A misconfigured matcher or moved route can never silently expose data; Next.js recommends not relying on the proxy alone. | A little duplicated checking per request. |
 | **Rate limits in Postgres** instead of Redis | No extra infrastructure; correct across instances; atomic in one SQL statement. | Adds a write per limited request. Fine at this scale; Redis would be the next step at high traffic. |
 | **Repository layer** | Queries in one place, ownership filters applied consistently, easy to test against a real database. | A thin extra layer over Prisma. |

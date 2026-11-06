@@ -1,5 +1,7 @@
 # Inkwell
 
+[![Pipeline](https://github.com/zaidhamarneh/Inkwell/actions/workflows/pipeline.yml/badge.svg?branch=main)](https://github.com/zaidhamarneh/Inkwell/actions/workflows/pipeline.yml)
+
 A blogging platform: write posts, read a feed, comment and like.
 
 Built with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, tRPC, React Query, Better Auth, Prisma and PostgreSQL, with Bun as the package manager.
@@ -182,6 +184,18 @@ docker network rm inkwell
 **Serverless backend.** On Vercel there is no long-running server: every backend entry point (the REST route handlers under `/api/v1`, the tRPC endpoint, Better Auth's `/api/auth` handler, the server actions and server-rendered pages) runs as a serverless Vercel Function that scales with traffic. The same code also runs as one ordinary Node.js server in the Docker `runner` image.
 
 It needs these secrets in the GitHub `production` environment: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` and `DIRECT_DATABASE_URL` (a direct, non-pooled connection string for migrations). Set `DATABASE_URL`, `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` (your production URL) in the Vercel project's environment variables.
+
+### CI/CD in action
+
+Every push to `main` runs the full pipeline. [Run #8](https://github.com/zaidhamarneh/Inkwell/actions/runs/42119553772) (commit `62a2170`) is a typical example, finishing in 6m 58s:
+
+1. **lint**, **unit** (tests with the coverage threshold) and **integration** (tests against a throwaway Postgres) run in parallel.
+2. **build** starts only after all three pass, and builds and publishes the runtime image to GHCR.
+3. **deploy** runs only after **build**: it applies the database migrations, then deploys to Vercel production.
+
+![Pipeline run #8: lint, unit and integration pass, then build, then deploy](docs/images/pipeline-run.png)
+
+The badge at the top of this README shows the current status of `main`. Every run, with its full logs, is listed on the [Actions page](https://github.com/zaidhamarneh/Inkwell/actions/workflows/pipeline.yml).
 
 ## Scripts
 
